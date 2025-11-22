@@ -1,60 +1,72 @@
-"""
-Módulo de seguridad: manejo de contraseñas y tokens JWT
-"""
+# app/core/security.py
 
 from datetime import datetime, timedelta
 from typing import Optional
-import jwt
-from bcrypt import hashpw, checkpw, gensalt
+from jose import JWTError, jwt
+from passlib.context import CryptContext
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
 from ..database.database import get_db
 from ..models.user import User
-import os
 
-# ============================================================
-# CONFIGURACIÓN
-# ============================================================
-
-
-
-SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key") # Cambiar en producción
+# Configuración
+SECRET_KEY = "7c92e93af3218c22c0eb3a65871cebd2eede4f7455f64e82fbc7282f29a01be4"  # ⚠️ CAMBIAR EN PRODUCCIÓN
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
+# Contexto de encriptación para passwords
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+# Configuración de Bearer token
 security = HTTPBearer()
 
+
 # ============================================================
-# PASSWORD HASHING
+# FUNCIONES DE HASHING DE CONTRASEÑAS
 # ============================================================
 
-def hash_password(plain_password: str) -> str:
+def hash_password(password: str) -> str:
     """
-    Hashea una contraseña usando bcrypt
+    Hashea una contraseña usando bcrypt.
+    
+    Args:
+        password: Contraseña en texto plano
+        
+    Returns:
+        Hash de la contraseña
     """
-    salt = gensalt()
-    hashed = hashpw(plain_password.encode('utf-8'), salt)
-    return hashed.decode('utf-8')
+    return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """
-    Verifica una contraseña plana contra su hash
+    Verifica que una contraseña coincida con su hash.
+    
+    Args:
+        plain_password: Contraseña en texto plano
+        hashed_password: Hash almacenado
+        
+    Returns:
+        True si coinciden, False si no
     """
-    try:
-        return checkpw(plain_password.encode('utf-8'), hashed_password.encode('utf-8'))
-    except Exception:
-        return False
+    return pwd_context.verify(plain_password, hashed_password)
 
 
 # ============================================================
-# JWT TOKEN MANAGEMENT
+# FUNCIONES DE JWT
 # ============================================================
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
     """
-    Crea un token JWT con los datos proporcionados
+    Crea un token JWT.
+    
+    Args:
+        data: Datos a incluir en el token (típicamente {"sub": user_id})
+        expires_delta: Tiempo de expiración opcional
+        
+    Returns:
+        Token JWT codificado
     """
     to_encode = data.copy()
     
@@ -64,32 +76,30 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
         expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     
     to_encode.update({"exp": expire})
-    
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
+    
     return encoded_jwt
 
 
-def decode_token(token: str) -> dict:
+def decode_access_token(token: str) -> Optional[dict]:
     """
-    Decodifica y valida un token JWT
+    Decodifica y valida un token JWT.
+    
+    Args:
+        token: Token JWT a decodificar
+        
+    Returns:
+        Payload del token si es válido, None si no
     """
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token expirado"
-        )
-    except jwt.InvalidTokenError:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido"
-        )
+    except JWTError:
+        return None
 
 
 # ============================================================
-# AUTHENTICATION
+# DEPENDENCY PARA OBTENER USUARIO ACTUAL
 # ============================================================
 
 def get_current_user(
@@ -97,41 +107,46 @@ def get_current_user(
     db: Session = Depends(get_db)
 ) -> User:
     """
-    Obtiene el usuario actual basado en el token JWT
+    Dependency para obtener el usuario autenticado actual.
+    Valida el token JWT y retorna el usuario correspondiente.
+    
+    Args:
+        credentials: Credenciales del header Authorization
+        db: Sesión de base de datos
+        
+    Returns:
+        Usuario autenticado
+        
+    Raises:
+        HTTPException: Si el token es inválido o el usuario no existe
     """
-    if not credentials:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales no proporcionadas"
-        )
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="No se pudieron validar las credenciales",
+        headers={"WWW-Authenticate": "Bearer"}
+    )
     
     token = credentials.credentials
-    payload = decode_token(token)
     
-    user_id = payload.get("sub")
+    # Decodificar token
+    payload = decode_access_token(token)
     
-    if not user_id:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token inválido"
-        )
+    if payload is None:
+        raise credentials_exception
     
-    try:
-        user_id = int(user_id)
-    except (ValueError, TypeError):
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="ID de usuario inválido"
-        )
+    # Obtener user_id del payload
+    user_id: str = payload.get("sub")
     
-    user = db.query(User).filter(User.user_id == user_id).first()
+    if user_id is None:
+        raise credentials_exception
     
-    if not user:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail="Usuario no encontrado"
-        )
+    # Buscar usuario en la base de datos
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
     
+    if user is None:
+        raise credentials_exception
+    
+    # Verificar que el usuario esté activo
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
@@ -140,3 +155,15 @@ def get_current_user(
     
     return user
 
+
+def get_current_active_user(current_user: User = Depends(get_current_user)) -> User:
+    """
+    Dependency adicional que verifica que el usuario esté activo.
+    (Redundante con get_current_user pero útil para claridad)
+    """
+    if not current_user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Usuario inactivo"
+        )
+    return current_user
