@@ -2,7 +2,7 @@
 
 from sqlalchemy.orm import Session
 from app.models.user import User
-from app.core.security import create_access_token, verify_password, hash_password
+from ..core.security import create_access_token, verify_password, hash_password
 
 
 class AuthService:

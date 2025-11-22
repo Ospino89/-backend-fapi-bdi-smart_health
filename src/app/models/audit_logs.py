@@ -2,7 +2,7 @@ from sqlalchemy import Column, Integer, String, Text, TIMESTAMP, ForeignKey
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from app.database.database import Base
+from ..database.database import Base
 
 
 

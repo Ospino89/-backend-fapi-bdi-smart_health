@@ -1,7 +1,9 @@
 from sqlalchemy import Column, Integer, String, Boolean, Text, TIMESTAMP
 from sqlalchemy.sql import func
 from sqlalchemy.orm import relationship
-from app.database.database import Base
+from ..database.database import Base
+from .audit_logs import AuditLog
+
 
 
 class User(Base):
@@ -20,3 +22,4 @@ class User(Base):
 
     # relación con audit_logs
     audit_logs = relationship("AuditLog", back_populates="user")
+

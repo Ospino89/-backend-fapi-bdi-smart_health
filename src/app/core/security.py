@@ -9,14 +9,17 @@ from bcrypt import hashpw, checkpw, gensalt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
-from app.database.database import get_db
-from app.models.user import User
+from ..database.database import get_db
+from ..models.user import User
+import os
 
 # ============================================================
 # CONFIGURACIÓN
 # ============================================================
 
-SECRET_KEY = "your-secret-key-change-this-in-production"  # Cambiar en producción
+
+
+SECRET_KEY = os.getenv("SECRET_KEY", "dev-secret-key") # Cambiar en producción
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 
