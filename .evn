@@ -1,0 +1,7 @@
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=smart_health
+DB_USER=sm_admin
+DB_PASSWORD=sm2025**
+APP_ENV=development
+SECRET_KEY=ivan777
