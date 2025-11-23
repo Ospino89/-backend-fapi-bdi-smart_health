@@ -446,20 +446,26 @@ CREATE TABLE IF NOT EXISTS smart_health.payment_methods (
 -- Brief: System users for authentication and activity tracking
 CREATE TABLE IF NOT EXISTS smart_health.users (
     user_id SERIAL PRIMARY KEY,
-    full_name VARCHAR(150) NOT NULL,
+    first_name VARCHAR(50) NOT NULL,
+    middle_name VARCHAR(50),
+    first_surname VARCHAR(50) NOT NULL,
+    second_surname VARCHAR(50),
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash TEXT NOT NULL,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT NOW()
 );
 
-COMMENT ON TABLE smart_health.users IS 'System users for authentication and tracking.';
-COMMENT ON COLUMN smart_health.users.user_id IS 'Primary key for users.';
-COMMENT ON COLUMN smart_health.users.full_name IS 'Full name of the user.';
-COMMENT ON COLUMN smart_health.users.email IS 'Unique email for login.';
-COMMENT ON COLUMN smart_health.users.password_hash IS 'Hashed password using bcrypt/argon2.';
-COMMENT ON COLUMN smart_health.users.is_active IS 'Indicates if user account is active.';
-COMMENT ON COLUMN smart_health.users.created_at IS 'Timestamp when the user was created.';
+COMMENT ON TABLE smart_health.users IS 'Usuarios del sistema para autenticación y seguimiento';
+COMMENT ON COLUMN smart_health.users.user_id IS 'Clave primaria para los usuarios';
+COMMENT ON COLUMN smart_health.users.first_name IS 'Primer nombre del usuario';
+COMMENT ON COLUMN smart_health.users.middle_name IS 'Segundo nombre del usuario (opcional)';
+COMMENT ON COLUMN smart_health.users.first_surname IS 'Primer apellido del usuario';
+COMMENT ON COLUMN smart_health.users.second_surname IS 'Segundo apellido del usuario (opcional)';
+COMMENT ON COLUMN smart_health.users.email IS 'Correo electrónico único para iniciar sesión';
+COMMENT ON COLUMN smart_health.users.password_hash IS 'Contraseña cifrada mediante bcrypt/argon2';
+COMMENT ON COLUMN smart_health.users.is_active IS 'Indica si la cuenta de usuario está activa';
+COMMENT ON COLUMN smart_health.users.created_at IS 'Marca de tiempo cuando se creó el usuario';
 
 -- ##################################################
 -- #        MÓDULO DE AUDITORÍA - CORE              #
