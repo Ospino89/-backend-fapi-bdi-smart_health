@@ -22,52 +22,20 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 security = HTTPBearer()
 
 
-# ============================================================
-# FUNCIONES DE HASHING DE CONTRASEÑAS
-# ============================================================
-
 def hash_password(password: str) -> str:
-    """
-    Hashea una contraseña usando bcrypt.
-    
-    Args:
-        password: Contraseña en texto plano
-        
-    Returns:
-        Hash de la contraseña
-    """
+  
     return pwd_context.hash(password)
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
-    """
-    Verifica que una contraseña coincida con su hash.
-    
-    Args:
-        plain_password: Contraseña en texto plano
-        hashed_password: Hash almacenado
-        
-    Returns:
-        True si coinciden, False si no
-    """
+  
+  
     return pwd_context.verify(plain_password, hashed_password)
 
 
-# ============================================================
-# FUNCIONES DE JWT
-# ============================================================
 
 def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
-    """
-    Crea un token JWT.
-    
-    Args:
-        data: Datos a incluir en el token (típicamente {"sub": user_id})
-        expires_delta: Tiempo de expiración opcional
-        
-    Returns:
-        Token JWT codificado
-    """
+  
     to_encode = data.copy()
     
     if expires_delta:
@@ -82,15 +50,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 
 
 def decode_access_token(token: str) -> Optional[dict]:
-    """
-    Decodifica y valida un token JWT.
-    
-    Args:
-        token: Token JWT a decodificar
-        
-    Returns:
-        Payload del token si es válido, None si no
-    """
+ 
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
         return payload
@@ -98,28 +58,11 @@ def decode_access_token(token: str) -> Optional[dict]:
         return None
 
 
-# ============================================================
-# DEPENDENCY PARA OBTENER USUARIO ACTUAL
-# ============================================================
-
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
-    """
-    Dependency para obtener el usuario autenticado actual.
-    Valida el token JWT y retorna el usuario correspondiente.
-    
-    Args:
-        credentials: Credenciales del header Authorization
-        db: Sesión de base de datos
-        
-    Returns:
-        Usuario autenticado
-        
-    Raises:
-        HTTPException: Si el token es inválido o el usuario no existe
-    """
+  
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="No se pudieron validar las credenciales",

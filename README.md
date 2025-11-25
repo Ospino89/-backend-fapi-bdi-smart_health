@@ -70,8 +70,7 @@ Sigue los pasos a continuación para configurar y ejecutar el proyecto:
 ### 1. Clonar el Repositorio
 
 ```bash
-git clone https://github.com/SebastianValero12/smart-health-LLM.git
-cd backend
+git clone git@github.com:Ospino89/-backend-fapi-bdi-smart_health.git
 ```
 
 ### 2. Crear un Entorno Virtual
@@ -95,8 +94,8 @@ Crea un archivo `.env` en la raíz del proyecto con la siguiente configuración 
  ```env
 DB_HOST=localhost
 DB_PORT=5432
-DB_NAME=smarthealth
-DB_USER=postgres
+DB_NAME=smarthdb
+DB_USER=sm_admin
 DB_PASSWORD=tu_password
 APP_ENV=development
 SECRET_KEY=tu_clave_secreta_muy_segura
@@ -122,6 +121,6 @@ uvicorn app.main:app --reload
 
 ### 7. accerde a el proyecto de FastAPI
 
-API: http://localhost:8088
-Documentación Swagger: http://localhost:8088/docs
-Documentación ReDoc: http://localhost:8088/redoc
+API: http://127.0.0.1:8000
+Documentación Swagger: http://127.0.0.1:8000/docs
+

@@ -18,23 +18,7 @@ router = APIRouter(
     description="Crea un nuevo usuario en el sistema con los datos proporcionados"
 )
 def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
-    """
-    Registra un nuevo usuario en el sistema.
-    
-    - **first_name**: Primer nombre (requerido)
-    - **middle_name**: Segundo nombre (opcional)
-    - **first_surname**: Primer apellido (requerido)
-    - **second_surname**: Segundo apellido (opcional)
-    - **email**: Correo electrónico único (requerido)
-    - **password**: Contraseña (requerido, mínimo 6 caracteres)
-    
-    Returns:
-        UserResponse: Datos del usuario creado (sin contraseña)
-    
-    Raises:
-        HTTPException 400: Si el email ya está registrado o la contraseña es inválida
-        HTTPException 500: Error interno del servidor
-    """
+   
     try:
         new_user = AuthService.register_user(db, user_data)
         return new_user
@@ -57,24 +41,7 @@ def register_user(user_data: UserCreate, db: Session = Depends(get_db)):
     description="Autentica al usuario y devuelve un token JWT"
 )
 def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
-    """
-    Inicia sesión y devuelve un token de acceso.
-    
-    - **email**: Correo electrónico del usuario
-    - **password**: Contraseña del usuario
-    
-    Returns:
-        TokenResponse: Token JWT y tipo de token
-        
-    Raises:
-        HTTPException 401: Si las credenciales son incorrectas o el usuario está inactivo
-        HTTPException 500: Error interno del servidor
-    
-    El token JWT debe incluirse en el header Authorization de peticiones subsecuentes:
-    ```
-    Authorization: Bearer <token>
-    ```
-    """
+   
     try:
         token_data = AuthService.login(db, login_data.email, login_data.password)
         return TokenResponse(**token_data)
