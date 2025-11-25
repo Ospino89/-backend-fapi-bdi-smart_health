@@ -52,6 +52,9 @@ ALTER TABLE smart_health.users
 ADD CONSTRAINT chk_email_format
 CHECK (email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$');
 
+ALTER TABLE smart_health.users 
+ADD COLUMN updated_at TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP;
+
 ALTER TABLE smart_health.payment_methods
 ADD CONSTRAINT chk_payment_method_type
 CHECK (payment_name IN ('Tarjeta de crédito', 'Efectivo', 'Transferencia', 'Tarjeta de débito', 'Bre-B'));
