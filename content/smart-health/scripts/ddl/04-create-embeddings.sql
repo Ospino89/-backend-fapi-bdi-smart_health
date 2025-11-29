@@ -162,255 +162,255 @@ IS 'Índice IVFFlat para búsqueda rápida de similitud en medicamentos';
 -- ##################################################
 
 -- Function 1: Buscar preguntas similares en audit_logs
---CREATE OR REPLACE FUNCTION smart_health.find_similar_questions(
---     query_embedding vector(1536),
---     similarity_threshold float DEFAULT 0.7,
---     max_results int DEFAULT 5
--- )
--- RETURNS TABLE (
---     audit_log_id INTEGER,
---     user_id INTEGER,
---     question TEXT,
---     response_json JSONB,
---     similarity_score FLOAT,
---     created_at TIMESTAMP
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         al.audit_log_id,
---         al.user_id,
---         al.question,
---         al.response_json,
---         (1 - (al.question_embedding <=> query_embedding))::FLOAT as similarity_score,
---         al.created_at
---     FROM smart_health.audit_logs al
---     WHERE al.question_embedding IS NOT NULL
---       AND (1 - (al.question_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY al.question_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+CREATE OR REPLACE FUNCTION smart_health.find_similar_questions(
+    query_embedding vector(1536),
+    similarity_threshold float DEFAULT 0.7,
+    max_results int DEFAULT 5
+)
+RETURNS TABLE (
+    audit_log_id INTEGER,
+    user_id INTEGER,
+    question TEXT,
+    response_json JSONB,
+    similarity_score FLOAT,
+    created_at TIMESTAMP
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        al.audit_log_id,
+        al.user_id,
+        al.question,
+        al.response_json,
+        (1 - (al.question_embedding <=> query_embedding))::FLOAT as similarity_score,
+        al.created_at
+    FROM smart_health.audit_logs al
+    WHERE al.question_embedding IS NOT NULL
+      AND (1 - (al.question_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY al.question_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_questions IS 
--- 'Busca preguntas similares en el historial de audit_logs usando similitud coseno. 
--- Parámetros: query_embedding (vector a buscar), similarity_threshold (umbral mínimo 0-1), max_results (máximo de resultados)';
+COMMENT ON FUNCTION smart_health.find_similar_questions IS 
+'Busca preguntas similares en el historial de audit_logs usando similitud coseno. 
+Parámetros: query_embedding (vector a buscar), similarity_threshold (umbral mínimo 0-1), max_results (máximo de resultados)';
 
--- -- Function 2: Buscar registros médicos similares
--- CREATE OR REPLACE FUNCTION smart_health.find_similar_medical_records(
---     query_embedding vector(1536),
---     patient_id_filter INTEGER DEFAULT NULL,
---     similarity_threshold float DEFAULT 0.7,
---     max_results int DEFAULT 10
--- )
--- RETURNS TABLE (
---     medical_record_id INTEGER,
---     patient_id INTEGER,
---     doctor_id INTEGER,
---     summary_text TEXT,
---     similarity_score FLOAT,
---     registration_datetime TIMESTAMP
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         mr.medical_record_id,
---         mr.patient_id,
---         mr.doctor_id,
---         mr.summary_text,
---         (1 - (mr.summary_embedding <=> query_embedding))::FLOAT as similarity_score,
---         mr.registration_datetime
---     FROM smart_health.medical_records mr
---     WHERE mr.summary_embedding IS NOT NULL
---       AND (patient_id_filter IS NULL OR mr.patient_id = patient_id_filter)
---       AND (1 - (mr.summary_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY mr.summary_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+-- Function 2: Buscar registros médicos similares
+CREATE OR REPLACE FUNCTION smart_health.find_similar_medical_records(
+    query_embedding vector(1536),
+    patient_id_filter INTEGER DEFAULT NULL,
+    similarity_threshold float DEFAULT 0.7,
+    max_results int DEFAULT 10
+)
+RETURNS TABLE (
+    medical_record_id INTEGER,
+    patient_id INTEGER,
+    doctor_id INTEGER,
+    summary_text TEXT,
+    similarity_score FLOAT,
+    registration_datetime TIMESTAMP
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        mr.medical_record_id,
+        mr.patient_id,
+        mr.doctor_id,
+        mr.summary_text,
+        (1 - (mr.summary_embedding <=> query_embedding))::FLOAT as similarity_score,
+        mr.registration_datetime
+    FROM smart_health.medical_records mr
+    WHERE mr.summary_embedding IS NOT NULL
+      AND (patient_id_filter IS NULL OR mr.patient_id = patient_id_filter)
+      AND (1 - (mr.summary_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY mr.summary_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_medical_records IS 
--- 'Busca registros médicos similares usando similitud coseno.
--- Parámetros: query_embedding (vector), patient_id_filter (opcional), similarity_threshold (0-1), max_results';
+COMMENT ON FUNCTION smart_health.find_similar_medical_records IS 
+'Busca registros médicos similares usando similitud coseno.
+Parámetros: query_embedding (vector), patient_id_filter (opcional), similarity_threshold (0-1), max_results';
 
--- -- Function 3: Buscar pacientes por nombre similar
--- CREATE OR REPLACE FUNCTION smart_health.find_similar_patients(
---     query_embedding vector(1536),
---     similarity_threshold float DEFAULT 0.8,
---     max_results int DEFAULT 10
--- )
--- RETURNS TABLE (
---     patient_id INTEGER,
---     full_name TEXT,
---     document_number VARCHAR(50),
---     similarity_score FLOAT
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         p.patient_id,
---         CONCAT(p.first_name, ' ', COALESCE(p.middle_name, ''), ' ', p.first_surname, ' ', COALESCE(p.second_surname, ''))::TEXT as full_name,
---         p.document_number,
---         (1 - (p.fullname_embedding <=> query_embedding))::FLOAT as similarity_score
---     FROM smart_health.patients p
---     WHERE p.fullname_embedding IS NOT NULL
---       AND (1 - (p.fullname_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY p.fullname_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+-- Function 3: Buscar pacientes por nombre similar
+CREATE OR REPLACE FUNCTION smart_health.find_similar_patients(
+    query_embedding vector(1536),
+    similarity_threshold float DEFAULT 0.8,
+    max_results int DEFAULT 10
+)
+RETURNS TABLE (
+    patient_id INTEGER,
+    full_name TEXT,
+    document_number VARCHAR(50),
+    similarity_score FLOAT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        p.patient_id,
+        CONCAT(p.first_name, ' ', COALESCE(p.middle_name, ''), ' ', p.first_surname, ' ', COALESCE(p.second_surname, ''))::TEXT as full_name,
+        p.document_number,
+        (1 - (p.fullname_embedding <=> query_embedding))::FLOAT as similarity_score
+    FROM smart_health.patients p
+    WHERE p.fullname_embedding IS NOT NULL
+      AND (1 - (p.fullname_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY p.fullname_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_patients IS 
--- 'Busca pacientes por similitud de nombre usando embeddings.
--- Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
+COMMENT ON FUNCTION smart_health.find_similar_patients IS 
+'Busca pacientes por similitud de nombre usando embeddings.
+Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
 
--- -- Function 4: Buscar doctores por nombre similar
--- CREATE OR REPLACE FUNCTION smart_health.find_similar_doctors(
---     query_embedding vector(1536),
---     similarity_threshold float DEFAULT 0.8,
---     max_results int DEFAULT 10
--- )
--- RETURNS TABLE (
---     doctor_id INTEGER,
---     full_name TEXT,
---     medical_license_number VARCHAR(50),
---     similarity_score FLOAT
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         d.doctor_id,
---         CONCAT(d.first_name, ' ', d.last_name)::TEXT as full_name,
---         d.medical_license_number,
---         (1 - (d.fullname_embedding <=> query_embedding))::FLOAT as similarity_score
---     FROM smart_health.doctors d
---     WHERE d.fullname_embedding IS NOT NULL
---       AND (1 - (d.fullname_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY d.fullname_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+-- Function 4: Buscar doctores por nombre similar
+CREATE OR REPLACE FUNCTION smart_health.find_similar_doctors(
+    query_embedding vector(1536),
+    similarity_threshold float DEFAULT 0.8,
+    max_results int DEFAULT 10
+)
+RETURNS TABLE (
+    doctor_id INTEGER,
+    full_name TEXT,
+    medical_license_number VARCHAR(50),
+    similarity_score FLOAT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        d.doctor_id,
+        CONCAT(d.first_name, ' ', d.last_name)::TEXT as full_name,
+        d.medical_license_number,
+        (1 - (d.fullname_embedding <=> query_embedding))::FLOAT as similarity_score
+    FROM smart_health.doctors d
+    WHERE d.fullname_embedding IS NOT NULL
+      AND (1 - (d.fullname_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY d.fullname_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_doctors IS 
--- 'Busca doctores por similitud de nombre usando embeddings.
--- Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
+COMMENT ON FUNCTION smart_health.find_similar_doctors IS 
+'Busca doctores por similitud de nombre usando embeddings.
+Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
 
--- -- Function 5: Buscar diagnósticos por descripción similar
--- CREATE OR REPLACE FUNCTION smart_health.find_similar_diagnoses(
---     query_embedding vector(1536),
---     similarity_threshold float DEFAULT 0.7,
---     max_results int DEFAULT 10
--- )
--- RETURNS TABLE (
---     diagnosis_id INTEGER,
---     icd_code VARCHAR(10),
---     description VARCHAR(500),
---     similarity_score FLOAT
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         d.diagnosis_id,
---         d.icd_code,
---         d.description,
---         (1 - (d.description_embedding <=> query_embedding))::FLOAT as similarity_score
---     FROM smart_health.diagnoses d
---     WHERE d.description_embedding IS NOT NULL
---       AND (1 - (d.description_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY d.description_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+-- Function 5: Buscar diagnósticos por descripción similar
+CREATE OR REPLACE FUNCTION smart_health.find_similar_diagnoses(
+    query_embedding vector(1536),
+    similarity_threshold float DEFAULT 0.7,
+    max_results int DEFAULT 10
+)
+RETURNS TABLE (
+    diagnosis_id INTEGER,
+    icd_code VARCHAR(10),
+    description VARCHAR(500),
+    similarity_score FLOAT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        d.diagnosis_id,
+        d.icd_code,
+        d.description,
+        (1 - (d.description_embedding <=> query_embedding))::FLOAT as similarity_score
+    FROM smart_health.diagnoses d
+    WHERE d.description_embedding IS NOT NULL
+      AND (1 - (d.description_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY d.description_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_diagnoses IS 
--- 'Busca diagnósticos por similitud de descripción en lenguaje natural.
--- Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
+COMMENT ON FUNCTION smart_health.find_similar_diagnoses IS 
+'Busca diagnósticos por similitud de descripción en lenguaje natural.
+Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
 
--- -- Function 6: Buscar medicamentos por similitud
--- CREATE OR REPLACE FUNCTION smart_health.find_similar_medications(
---     query_embedding vector(1536),
---     similarity_threshold float DEFAULT 0.7,
---     max_results int DEFAULT 10
--- )
--- RETURNS TABLE (
---     medication_id INTEGER,
---     commercial_name VARCHAR(200),
---     active_ingredient VARCHAR(200),
---     atc_code VARCHAR(10),
---     similarity_score FLOAT
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         m.medication_id,
---         m.commercial_name,
---         m.active_ingredient,
---         m.atc_code,
---         (1 - (m.medication_embedding <=> query_embedding))::FLOAT as similarity_score
---     FROM smart_health.medications m
---     WHERE m.medication_embedding IS NOT NULL
---       AND (1 - (m.medication_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY m.medication_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+-- Function 6: Buscar medicamentos por similitud
+CREATE OR REPLACE FUNCTION smart_health.find_similar_medications(
+    query_embedding vector(1536),
+    similarity_threshold float DEFAULT 0.7,
+    max_results int DEFAULT 10
+)
+RETURNS TABLE (
+    medication_id INTEGER,
+    commercial_name VARCHAR(200),
+    active_ingredient VARCHAR(200),
+    atc_code VARCHAR(10),
+    similarity_score FLOAT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        m.medication_id,
+        m.commercial_name,
+        m.active_ingredient,
+        m.atc_code,
+        (1 - (m.medication_embedding <=> query_embedding))::FLOAT as similarity_score
+    FROM smart_health.medications m
+    WHERE m.medication_embedding IS NOT NULL
+      AND (1 - (m.medication_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY m.medication_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_medications IS 
--- 'Busca medicamentos por similitud usando embeddings de nombre comercial y principio activo.
--- Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
+COMMENT ON FUNCTION smart_health.find_similar_medications IS 
+'Busca medicamentos por similitud usando embeddings de nombre comercial y principio activo.
+Parámetros: query_embedding (vector), similarity_threshold (0-1), max_results';
 
--- -- Function 7: Buscar citas por motivo similar
--- CREATE OR REPLACE FUNCTION smart_health.find_similar_appointments(
---     query_embedding vector(1536),
---     patient_id_filter INTEGER DEFAULT NULL,
---     similarity_threshold float DEFAULT 0.7,
---     max_results int DEFAULT 10
--- )
--- RETURNS TABLE (
---     appointment_id INTEGER,
---     patient_id INTEGER,
---     doctor_id INTEGER,
---     reason TEXT,
---     appointment_date DATE,
---     similarity_score FLOAT
--- ) 
--- LANGUAGE plpgsql
--- AS $
--- BEGIN
---     RETURN QUERY
---     SELECT 
---         a.appointment_id,
---         a.patient_id,
---         a.doctor_id,
---         a.reason,
---         a.appointment_date,
---         (1 - (a.reason_embedding <=> query_embedding))::FLOAT as similarity_score
---     FROM smart_health.appointments a
---     WHERE a.reason_embedding IS NOT NULL
---       AND (patient_id_filter IS NULL OR a.patient_id = patient_id_filter)
---       AND (1 - (a.reason_embedding <=> query_embedding)) >= similarity_threshold
---     ORDER BY a.reason_embedding <=> query_embedding
---     LIMIT max_results;
--- END;
--- $;
+-- Function 7: Buscar citas por motivo similar
+CREATE OR REPLACE FUNCTION smart_health.find_similar_appointments(
+    query_embedding vector(1536),
+    patient_id_filter INTEGER DEFAULT NULL,
+    similarity_threshold float DEFAULT 0.7,
+    max_results int DEFAULT 10
+)
+RETURNS TABLE (
+    appointment_id INTEGER,
+    patient_id INTEGER,
+    doctor_id INTEGER,
+    reason TEXT,
+    appointment_date DATE,
+    similarity_score FLOAT
+) 
+LANGUAGE plpgsql
+AS $$
+BEGIN
+    RETURN QUERY
+    SELECT 
+        a.appointment_id,
+        a.patient_id,
+        a.doctor_id,
+        a.reason,
+        a.appointment_date,
+        (1 - (a.reason_embedding <=> query_embedding))::FLOAT as similarity_score
+    FROM smart_health.appointments a
+    WHERE a.reason_embedding IS NOT NULL
+      AND (patient_id_filter IS NULL OR a.patient_id = patient_id_filter)
+      AND (1 - (a.reason_embedding <=> query_embedding)) >= similarity_threshold
+    ORDER BY a.reason_embedding <=> query_embedding
+    LIMIT max_results;
+END;
+$$;
 
--- COMMENT ON FUNCTION smart_health.find_similar_appointments IS 
--- 'Busca citas por similitud de motivo usando embeddings.
--- Parámetros: query_embedding (vector), patient_id_filter (opcional), similarity_threshold (0-1), max_results';
+COMMENT ON FUNCTION smart_health.find_similar_appointments IS 
+'Busca citas por similitud de motivo usando embeddings.
+Parámetros: query_embedding (vector), patient_id_filter (opcional), similarity_threshold (0-1), max_results';
 
--- COMMIT;
+COMMIT;
 
 -- ##################################################
 -- #              VERIFICATION QUERIES              #
