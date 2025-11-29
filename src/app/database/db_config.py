@@ -1,18 +1,19 @@
-# src/app/database/db_config.py
+import os
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
     db_host: str
-    db_port: int
+    db_port: int = 5432
     db_name: str
     db_user: str
     db_password: str
     secret_key: str
-    app_env: str = "development"  # valor por defecto opcional
+    app_env: str = "production"
 
     class Config:
-        env_file = "../.env"   # indica el archivo donde están las variables
+        # En producción, las variables vienen del sistema
+        env_file = ".env" if os.path.exists(".env") else None
         env_file_encoding = "utf-8"
+        case_sensitive = False
 
-# Instancia global que se usará en toda la app
 settings = Settings()

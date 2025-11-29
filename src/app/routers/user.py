@@ -122,44 +122,44 @@ def update_user(
         )
 
 
-@router.patch(
-    "/{user_id}",
-    response_model=UserResponse,
-    summary="Actualizar parcialmente un usuario"
-)
-def partial_update_user(
-    user_id: int,
-    update_data: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user)
-):
-    """
-    Actualiza parcialmente la información de un usuario (PATCH).
-    Solo el mismo usuario o un administrador pueden actualizar.
-    """
-    if current_user.user_id != user_id:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="No tienes permisos para actualizar este usuario"
-        )
+# @router.patch(
+#     "/{user_id}",
+#     response_model=UserResponse,
+#     summary="Actualizar parcialmente un usuario"
+# )
+# def partial_update_user(
+#     user_id: int,
+#     update_data: UserUpdate,
+#     db: Session = Depends(get_db),
+#     current_user: User = Depends(get_current_user)
+# ):
+#     """
+#     Actualiza parcialmente la información de un usuario (PATCH).
+#     Solo el mismo usuario o un administrador pueden actualizar.
+#     """
+#     if current_user.user_id != user_id:
+#         raise HTTPException(
+#             status_code=status.HTTP_403_FORBIDDEN,
+#             detail="No tienes permisos para actualizar este usuario"
+#         )
     
-    try:
-        update_dict = update_data.model_dump(exclude_unset=True)
-        updated_user = UserService.update_user(db, user_id, update_dict)
+#     try:
+#         update_dict = update_data.model_dump(exclude_unset=True)
+#         updated_user = UserService.update_user(db, user_id, update_dict)
         
-        if not updated_user:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Usuario no encontrado"
-            )
+#         if not updated_user:
+#             raise HTTPException(
+#                 status_code=status.HTTP_404_NOT_FOUND,
+#                 detail="Usuario no encontrado"
+#             )
         
-        return updated_user
+#         return updated_user
         
-    except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Error al actualizar usuario: {str(e)}"
-        )
+#     except Exception as e:
+#         raise HTTPException(
+#             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+#             detail=f"Error al actualizar usuario: {str(e)}"
+#         )
 
 
 @router.delete(

@@ -1,5 +1,3 @@
-# app/core/security.py
-
 from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
@@ -10,8 +8,9 @@ from sqlalchemy.orm import Session
 from ..database.database import get_db
 from ..models.user import User
 
+
 # Configuración
-SECRET_KEY = "7c92e93af3218c22c0eb3a65871cebd2eede4f7455f64e82fbc7282f29a01be4"  # ⚠️ CAMBIAR EN PRODUCCIÓN
+SECRET_KEY = "7c92e93af3218c22c0eb3a65871cebd2eede4f7455f64e82fbc7282f29a01be4"  
 ALGORITHM = "HS256"
 ACCESS_TOKEN_EXPIRE_MINUTES = 30
 

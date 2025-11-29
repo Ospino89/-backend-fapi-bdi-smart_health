@@ -8,15 +8,22 @@ Base.metadata.create_all(bind=engine)
 
 # Crear aplicación
 app = FastAPI(
-    title="SmartHealth API - Sprint 1",
+    title="SmartHealth API",
     description="API REST para sistema de gestión de salud",
     version="1.0.0"
 )
 
-# Configurar CORS (permitir peticiones desde frontend)
+# Configurar CORS para producción
+origins = [
+    "http://localhost:3000",
+    "http://localhost:5173",
+    "https://tu-frontend.vercel.app",  # Añade tu dominio de frontend
+    "*"  # En producción, especifica dominios exactos
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En producción, especifica dominios exactos
+    allow_origins=origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -30,11 +37,12 @@ app.include_router(user.router)
 @app.get("/", tags=["Root"])
 def root():
     return {
-        "message": "¡API SmartHealth funcionando correctamente!",
-        "docs": "/docs"
+        "message": "¡API SmartHealth funcionando en Render!",
+        "docs": "/docs",
+        "status": "healthy"
     }
 
 # Health check
 @app.get("/health", tags=["Health"])
 def health():
-    return {"status": "healthy"}
+    return {"status": "healthy", "environment": "production"}

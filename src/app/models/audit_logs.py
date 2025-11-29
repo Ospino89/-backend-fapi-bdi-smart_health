@@ -22,3 +22,5 @@ class AuditLog(Base):
 
     # relación con users
     user = relationship("User", back_populates="audit_logs")
+
+    

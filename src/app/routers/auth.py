@@ -56,3 +56,6 @@ def login_user(login_data: UserLogin, db: Session = Depends(get_db)):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error interno del servidor"
         )
+    
+
+    
