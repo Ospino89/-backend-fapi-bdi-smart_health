@@ -3,19 +3,17 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from .db_config import settings
 
-# Construir URL con SSL para Neon
-DATABASE_URL = (
-    f"postgresql://{settings.db_user}:{settings.db_password}@"
-    f"{settings.db_host}:{settings.db_port}/{settings.db_name}"
-)
+# Usar DATABASE_URL directamente
+DATABASE_URL = settings.database_url
 
-# Añadir SSL si estamos en producción
-if settings.app_env == "production":
-    DATABASE_URL += "?sslmode=require"
+# Añadir SSL si no está ya en la URL
+if settings.app_env == "production" and "sslmode" not in DATABASE_URL:
+    separator = "&" if "?" in DATABASE_URL else "?"
+    DATABASE_URL += f"{separator}sslmode=require"
 
 engine = create_engine(
     DATABASE_URL,
-    echo=False,  # Desactivar logs en producción
+    echo=False,
     pool_pre_ping=True,
     pool_recycle=3600,
     pool_size=10,
