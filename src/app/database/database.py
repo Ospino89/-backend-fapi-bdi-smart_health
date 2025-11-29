@@ -1,15 +1,22 @@
-# src/app/database/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from .db_config import settings
 
-# Usar DATABASE_URL directamente
-DATABASE_URL = settings.database_url
+# Construir URL con manejo robusto del puerto
+if settings.db_port:
+    DATABASE_URL = (
+        f"postgresql://{settings.db_user}:{settings.db_password}@"
+        f"{settings.db_host}:{settings.db_port}/{settings.db_name}"
+    )
+else:
+    DATABASE_URL = (
+        f"postgresql://{settings.db_user}:{settings.db_password}@"
+        f"{settings.db_host}/{settings.db_name}"
+    )
 
-# Añadir SSL si no está ya en la URL
-if settings.app_env == "production" and "sslmode" not in DATABASE_URL:
-    separator = "&" if "?" in DATABASE_URL else "?"
-    DATABASE_URL += f"{separator}sslmode=require"
+# Añadir SSL en producción
+if settings.app_env == "production":
+    DATABASE_URL += "?sslmode=require"
 
 engine = create_engine(
     DATABASE_URL,
