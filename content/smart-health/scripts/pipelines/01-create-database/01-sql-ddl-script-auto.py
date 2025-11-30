@@ -52,7 +52,7 @@ def connect_postgres(host, port, user, password, dbname='postgres'):
         sys.exit(1)
 
 def parse_sql_file(filepath):
-    """Parse SQL file and split into statements"""
+    """Parse SQL file and split into statements, handling PL/pgSQL functions"""
     try:
         with open(filepath, 'r', encoding='utf-8') as f:
             sql = f.read()
@@ -63,19 +63,43 @@ def parse_sql_file(filepath):
     
     statements = []
     buffer = ""
+    in_function = False
+    function_delimiter = None
     
     for line in sql.splitlines():
-        line = line.strip()
-        # Skip empty lines and comments
-        if not line or line.startswith('--'):
+        stripped_line = line.strip()
+        
+        # Skip empty lines and standalone comments
+        if not stripped_line or (stripped_line.startswith('--') and not buffer):
             continue
         
         buffer += " " + line
         
-        # Check if statement ends with semicolon
-        if line.endswith(";"):
+        # Detect start of function with delimiter
+        if 'AS $BODY$' in line.upper() or 'AS $$' in line.upper():
+            in_function = True
+            if '$BODY$' in line.upper():
+                function_delimiter = '$BODY$'
+            else:
+                function_delimiter = '$$'
+        
+        # Detect end of function
+        if in_function and function_delimiter:
+            if line.strip().endswith(function_delimiter + ';'):
+                in_function = False
+                function_delimiter = None
+                statements.append(buffer.strip())
+                buffer = ""
+                continue
+        
+        # Normal statement end (not in function)
+        if not in_function and stripped_line.endswith(";"):
             statements.append(buffer.strip())
             buffer = ""
+    
+    # Add any remaining buffer
+    if buffer.strip():
+        statements.append(buffer.strip())
     
     return statements
 
