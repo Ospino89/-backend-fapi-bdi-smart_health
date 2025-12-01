@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     
     # === CONFIGURACIÓN DEL LLM ===
     openai_api_key: str
-    llm_model: str = "gpt-4o-mini"
+    llm_model: str = "gpt-5-nano"
     llm_temperature: float = 0.1
     llm_max_tokens: int = 500
     llm_timeout: int = 30
