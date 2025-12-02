@@ -1,0 +1,17 @@
+{
+  "status": "success | no_data | error",
+  "data": {
+    "...": "Solo cuando hay datos (success o no_data)"
+  },
+  "error": {
+    "code": "PATIENT_NOT_FOUND | VALIDATION_ERROR | LLM_ERROR | DB_ERROR | UNAUTHORIZED | FORBIDDEN",
+    "message": "Mensaje legible para el usuario o para debugging",
+    "details": {}
+  },
+  "metadata": {
+    "total_records_analyzed": 0,
+    "query_time_ms": 0,
+    "sources_used": [],
+    "context_tokens": 0
+  }
+}

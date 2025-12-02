@@ -1,0 +1,119 @@
+1 ... 01 COUNT TABLES
+SELECT 'ADDRESSES' AS TABLA, COUNT(*) FROM SMARTH_HEALTH.ADDRESSES
+UNION
+SELECT 'PATIENTS' AS TABLA, COUNT(*) FROM SMARTH_HEALTH.PATIENTS
+UNION
+SELECT 'DOCTORS' AS TABLA, COUNT(*) FROM SMARTH_HEALTH.DOCTORS
+UNION 
+SELECT 'APPOINTMENTS' AS TABLA, COUNT(*) FROM SMARTH_HEALTH.APPOINTMENTS;
+
+SELECT 'ADDRESSES'   AS tabla, COUNT(*) FROM smart_health.addresses
+UNION ALL
+SELECT 'PATIENTS'    AS tabla, COUNT(*) FROM smart_health.patients
+UNION ALL
+SELECT 'DOCTORS'     AS tabla, COUNT(*) FROM smart_health.doctors
+UNION ALL
+SELECT 'APPOINTMENTS' AS tabla, COUNT(*) FROM smart_health.appointments;
+2
+SELECT patient_id,
+       EXTRACT(YEAR FROM AGE(CURRENT_DATE, birth_date))::INTEGER AS age_patient
+FROM smart_health.patients
+LIMIT 5;
+
+
+3
+CREATE OR REPLACE FUNCTION obtener_edad_paciente(p_patient_id INTEGER)
+RETURNS INTEGER
+LANGUAGE plpgsql
+AS $$
+DECLARE
+    v_edad_pat INTEGER := 0;
+BEGIN
+    SELECT EXTRACT(YEAR FROM AGE(CURRENT_DATE, birth_date))::INTEGER
+    INTO v_edad_pat
+    FROM smart_health.patients
+    WHERE id = p_patient_id;
+
+    RETURN COALESCE(v_edad_pat,0);
+END;
+$$;
+
+4
+SELECT patient_id,
+       obtener_edad(patient_id);
+FROM smart_health.patients
+LIMIT 5;
+
+
+SELECT
+  p.patient_id,
+  (EXTRACT(YEAR FROM AGE(CURRENT_DATE, p.birth_date)))::INT AS age,
+  COUNT(pa.patient_allergy_id) AS allergy_record_count
+FROM smart_health.patients p
+JOIN smart_health.patient_allergies pa
+  ON pa.patient_id = p.patient_id
+WHERE p.active = TRUE
+GROUP BY p.patient_id, p.birth_date
+HAVING COUNT(pa.patient_allergy_id) = 1
+ORDER BY age DESC
+LIMIT 10;
+
+CREATE OR REPLACE FUNCTION smart_health.obtener_alergias_paciente(p_patient_id INTEGER)
+RETURNS TABLE(
+  patient_id INTEGER,
+  first_name TEXT,
+  middle_name TEXT,
+  first_surname TEXT,
+  second_surname TEXT,
+  full_name TEXT,
+  reaction_description TEXT,
+  medication_id INTEGER,
+  medication_name TEXT
+)
+LANGUAGE sql
+AS $$
+  SELECT
+    p.patient_id,
+    p.first_name,
+    p.middle_name,
+    p.first_surname,
+    p.second_surname,
+    CONCAT_WS(' ', p.first_name, p.middle_name, p.first_surname, p.second_surname) AS full_name,
+    pa.reaction_description,
+    pa.medication_id,
+    m.medication_name  
+  FROM smart_health.patients p
+  JOIN smart_health.patient_allergies pa ON pa.patient_id = p.patient_id
+  LEFT JOIN smart_health.medications m ON m.medication_id = pa.medication_id
+  WHERE p.patient_id = p_patient_id;
+$$;
+
+
+
+
+
+
+
+
+
+SELECT
+    t1.patient_id,
+    ti.first_name,
+    t2.reaction_description,
+    y2.severity,
+    t3.comercial_name,
+FROM smart_health.patient
+
+
+
+
+
+
+BEGIN
+    CONCAT('PACIENTE ID: ', t1.patient_id,
+            '- medicamento: ', t3.commercial_name)
+INTO v_resultado
+FROM smart_health.patient t1
+INNER JOIN smart_health.patient.allergies t2
+ON t1.patient_id = T2.patient_id
+INNER JOIN 
