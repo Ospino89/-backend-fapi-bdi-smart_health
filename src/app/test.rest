@@ -1,0 +1,9 @@
+curl -X POST "http://localhost:8088/query/" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "user_id": "user123",
+    "session_id": "session456",
+    "document_type_id": 1,
+    "document_number": "123456789",
+    "question": "¿Cual es el historial medico del paciente user123?"
+  }'

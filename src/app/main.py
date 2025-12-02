@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import auth, user
 from .database.database import Base, engine
+from .routers import query
 
 # Crear tablas en la base de datos
 Base.metadata.create_all(bind=engine)
@@ -27,6 +28,7 @@ app.add_middleware(
 # Incluir routers
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(query.router)
 
 # Endpoint raíz
 @app.get("/", tags=["Root"])
@@ -40,3 +42,7 @@ def root():
 @app.get("/health", tags=["Health"])
 def health():
     return {"status": "healthy"}
+
+@app.get("/")
+def root():
+    return {"message": "Smart Health RAG API - Running"}
