@@ -1,14 +1,16 @@
 # src/app/routers/query.py
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
 from typing import List, Dict, Optional, Literal
+from sqlalchemy.orm import Session
 import logging
 import time
 
 from app.services.llm_service import llm_service
-
-# Importar funciones de Persona 2 (ajusta según tus archivos reales)
-# from app.services.patient_service import get_patient_by_document, get_clinical_records
+from app.services.clinical_service import fetch_patient_and_records
+from app.services.vector_search import search_similar_chunks
+from app.database.database import get_db
+from app.schemas.clinical import PatientInfo, ClinicalRecords
 
 router = APIRouter(prefix="/query", tags=["RAG Query"])
 logger = logging.getLogger(__name__)
@@ -16,252 +18,224 @@ logger = logging.getLogger(__name__)
 # === SCHEMAS ===
 
 class QueryInput(BaseModel):
-    """Input del endpoint /query"""
-    user_id: str = Field(..., description="ID del usuario que hace la consulta")
-    session_id: str = Field(..., description="ID de la sesión")
-    document_type_id: int = Field(..., description="Tipo de documento (1=CC, 2=TI, etc)")
-    document_number: str = Field(..., description="Número de documento del paciente")
-    question: str = Field(..., description="Pregunta clínica")
-
-class Source(BaseModel):
-    """Fuente de información"""
-    type: Literal["clinical_record", "vector_search"]
-    source_id: Optional[str] = None
-    source_type: Optional[str] = None
-    relevance_score: Optional[float] = None
-    date: Optional[str] = None
-
-class Metadata(BaseModel):
-    """Metadatos de la consulta"""
-    total_records_analyzed: int
-    query_time_ms: int
-    sources_used: int
-    context_tokens: int
-    model_used: str
+    user_id: str
+    session_id: str
+    document_type_id: int
+    document_number: str
+    question: str
 
 class QuerySuccess(BaseModel):
-    """Respuesta exitosa"""
     status: Literal["success"] = "success"
     data: Dict
 
 class QueryNoData(BaseModel):
-    """Respuesta sin datos"""
     status: Literal["no_data"] = "no_data"
     message: str
     metadata: Optional[Dict] = None
 
 class QueryError(BaseModel):
-    """Respuesta de error"""
     status: Literal["error"] = "error"
     error: Dict
 
-# === FUNCIONES AUXILIARES (MOCK TEMPORAL) ===
 
-def get_patient_by_document_mock(document_type_id: int, document_number: str):
-    """MOCK de Persona 2 - Reemplaza con tu función real"""
-    # TODO: Reemplazar con tu función real de Persona 2
-    return {
-        "patient_id": 1,
-        "name": "Juan Pérez",
-        "age": 45,
-        "document_type": document_type_id,
-        "document_number": document_number
-    }
+# === CONTEXTO ===
 
-def get_clinical_records_mock(patient_id: int):
-    """MOCK de Persona 2 - Reemplaza con tu función real"""
-    # TODO: Reemplazar con tus funciones reales de Persona 2
-    return {
-        "appointments": [
-            {
-                "id": "APT-001",
-                "date": "2024-11-20",
-                "doctor": "Dr. García",
-                "diagnosis": "Hipertensión arterial controlada",
-                "notes": "Paciente con buen control de presión arterial"
-            }
-        ],
-        "medications": [
-            {
-                "id": "MED-001",
-                "name": "Losartán",
-                "dose": "50mg",
-                "frequency": "1 vez al día",
-                "prescribed_date": "2024-11-20"
-            }
-        ],
-        "diagnoses": [
-            {
-                "id": "DIAG-001",
-                "code": "I10",
-                "description": "Hipertensión arterial esencial",
-                "date": "2024-11-20"
-            }
-        ]
-    }
+def build_context_from_real_data(
+    patient_info: PatientInfo,
+    clinical_records: ClinicalRecords,
+    similar_chunks: List
+) -> str:
 
-def search_similar_chunks_mock(patient_id: int, question: str):
-    """MOCK de Persona 3 - Por ahora retorna vacío"""
-    # TODO: Implementar cuando Persona 3 termine
-    return []
+    # Calcular edad porque NO existe en BD
+    age = None
+    if patient_info.birth_date:
+        from datetime import date
+        today = date.today()
+        age = today.year - patient_info.birth_date.year - (
+            (today.month, today.day) < (patient_info.birth_date.month, patient_info.birth_date.day)
+        )
 
-def build_context_from_records(patient_info: Dict, clinical_records: Dict, similar_chunks: List) -> str:
-    """Construye el contexto (Persona 4 adaptado)"""
-    
     context = f"""### INFORMACIÓN BÁSICA DEL PACIENTE
-Nombre: {patient_info['name']}
-Edad: {patient_info['age']} años
-Documento: {patient_info['document_number']}
+Nombre: {patient_info.first_name} {patient_info.first_surname}
+Edad: {age if age is not None else 'No disponible'}
+Documento: {patient_info.document_number}
+Género: {patient_info.gender}
+Email: {patient_info.email or 'No registrado'}
 
 """
-    
-    # Agregar citas
-    if clinical_records.get('appointments'):
+
+    # CITAS
+    if clinical_records.appointments:
         context += "### CITAS MÉDICAS RECIENTES\n"
-        for apt in clinical_records['appointments']:
-            context += f"""- Fecha: {apt['date']}
-  Médico: {apt['doctor']}
-  Diagnóstico: {apt['diagnosis']}
-  Notas: {apt.get('notes', 'Sin notas')}
+        for apt in clinical_records.appointments[:10]:
+            context += f"""- Fecha: {apt.appointment_date}
+  Estado: {apt.status}
+  Motivo: {apt.reason or 'No especificado'}
 
 """
-    
-    # Agregar medicamentos
-    if clinical_records.get('medications'):
-        context += "### MEDICAMENTOS ACTUALES\n"
-        for med in clinical_records['medications']:
-            context += f"- {med['name']} {med['dose']} - {med['frequency']}\n"
+
+    # REGISTROS
+    if clinical_records.medical_records:
+        context += "### REGISTROS MÉDICOS\n"
+        for rec in clinical_records.medical_records[:10]:
+            context += f"""- Fecha: {rec.registration_datetime}
+  Tipo: {rec.record_type}
+  Descripción: {rec.description or 'Sin descripción'}
+
+"""
+
+    # PRESCRIPCIONES
+    if clinical_records.prescriptions:
+        context += "### MEDICAMENTOS Y PRESCRIPCIONES\n"
+        for presc in clinical_records.prescriptions[:15]:
+            context += f"- {presc.medication_name}: {presc.dosage} - {presc.frequency}\n"
+            if presc.duration:
+                context += f"  Duración: {presc.duration}\n"
+            if presc.notes:
+                context += f"  Notas: {presc.notes}\n"
         context += "\n"
-    
-    # Agregar diagnósticos
-    if clinical_records.get('diagnoses'):
+
+    # DIAGNÓSTICOS
+    if clinical_records.diagnoses:
         context += "### DIAGNÓSTICOS\n"
-        for diag in clinical_records['diagnoses']:
-            context += f"- {diag['description']} (Código: {diag['code']}) - {diag['date']}\n"
+        for diag in clinical_records.diagnoses[:15]:
+            context += f"- {diag.description} (Código ICD: {diag.icd_code})\n"
+            context += f"  Tipo: {diag.diagnosis_type}\n"
+            if diag.note:
+                context += f"  Nota: {diag.note}\n"
         context += "\n"
-    
-    # Agregar chunks de vector search si existen
+
+    # VECTOR SEARCH
     if similar_chunks:
-        context += "### INFORMACIÓN ADICIONAL RELEVANTE\n"
-        for chunk in similar_chunks:
-            context += f"- [Relevancia: {chunk.get('relevance_score', 0):.2f}] {chunk['text']}\n"
-    
+        context += "### INFORMACIÓN ADICIONAL RELEVANTE (BÚSQUEDA SEMÁNTICA)\n"
+        for chunk in similar_chunks[:5]:
+            context += f"- [Relevancia: {chunk.relevance_score:.2f}] {chunk.chunk_text}\n"
+            context += f"  Fuente: {chunk.source_type} - Fecha: {chunk.date}\n\n"
+
     return context
 
-def build_sources(clinical_records: Dict, similar_chunks: List) -> List[Dict]:
-    """Construye las fuentes"""
+
+# === SOURCES ===
+
+def build_sources_from_real_data(clinical_records: ClinicalRecords, similar_chunks: List) -> List[Dict]:
     sources = []
-    
-    for apt in clinical_records.get('appointments', []):
+
+    for apt in clinical_records.appointments[:5]:
         sources.append({
             "type": "clinical_record",
-            "source_id": apt['id'],
+            "source_id": str(apt.appointment_id),
             "source_type": "appointment",
-            "date": apt['date']
+            "date": str(apt.appointment_date)
         })
-    
-    for chunk in similar_chunks:
+
+    for presc in clinical_records.prescriptions[:5]:
+        sources.append({
+            "type": "clinical_record",
+            "source_id": str(presc.prescription_id),
+            "source_type": "prescription",
+            "date": str(presc.prescription_date)
+        })
+
+    for chunk in similar_chunks[:5]:
         sources.append({
             "type": "vector_search",
-            "source_type": chunk.get('source_type'),
-            "relevance_score": chunk.get('relevance_score')
+            "source_id": str(chunk.source_id),
+            "source_type": chunk.source_type,
+            "relevance_score": chunk.relevance_score,
+            "date": str(chunk.date) if chunk.date else None
         })
-    
+
     return sources
+
 
 # === ENDPOINT PRINCIPAL ===
 
 @router.post("/", response_model=QuerySuccess | QueryNoData | QueryError)
-async def query_patient(input_data: QueryInput):
-    """
-    Endpoint principal para consultas RAG sobre datos clínicos.
-    
-    Flujo:
-    1. Buscar paciente por documento (Persona 2)
-    2. Obtener datos clínicos del paciente (Persona 2)
-    3. Buscar fragmentos relevantes con vector search (Persona 3)
-    4. Construir contexto (Persona 4)
-    5. Consultar al LLM (Persona 5)
-    6. Devolver respuesta estructurada
-    """
+async def query_patient(input_data: QueryInput, db: Session = Depends(get_db)):
     start_time = time.time()
-    
+
     try:
-        logger.info(f"📝 Query recibida: {input_data.question}")
+        logger.info(f"📝 Pregunta: {input_data.question}")
         logger.info(f"👤 Documento: {input_data.document_type_id}-{input_data.document_number}")
-        
-        # === PASO 1: Buscar paciente (Persona 2) ===
-        try:
-            patient_info = get_patient_by_document_mock(
-                input_data.document_type_id,
-                input_data.document_number
-            )
-        except Exception as e:
-            logger.error(f"❌ Paciente no encontrado: {e}")
+
+        # 1. BUSCAR PACIENTE
+        patient_info, clinical_data = fetch_patient_and_records(
+            db=db,
+            document_type_id=input_data.document_type_id,
+            document_number=input_data.document_number
+        )
+
+        if not patient_info:
             return QueryError(
                 status="error",
                 error={
                     "code": "PATIENT_NOT_FOUND",
                     "message": "No se encontró un paciente con el documento proporcionado",
-                    "details": {"document_number": input_data.document_number}
+                    "details": {
+                        "document_type_id": input_data.document_type_id,
+                        "document_number": input_data.document_number
+                    }
                 }
             )
-        
-        # === PASO 2: Obtener datos clínicos (Persona 2) ===
-        clinical_records = get_clinical_records_mock(patient_info['patient_id'])
-        
-        # === PASO 3: Vector search (Persona 3) ===
-        similar_chunks = search_similar_chunks_mock(
-            patient_info['patient_id'],
-            input_data.question
+
+        # 2. VECTOR SEARCH
+        try:
+            similar_chunks = await search_similar_chunks(
+                patient_id=patient_info.patient_id,
+                question=input_data.question,
+                k=15,
+                min_score=0.3
+            )
+        except:
+            similar_chunks = []
+
+        # 3. CONTEXTO
+        context = build_context_from_real_data(
+            patient_info=patient_info,
+            clinical_records=clinical_data.records,
+            similar_chunks=similar_chunks
         )
-        
-        # === PASO 4: Construir contexto (Persona 4) ===
-        context = build_context_from_records(
-            patient_info,
-            clinical_records,
-            similar_chunks
-        )
-        
-        logger.info(f"📄 Contexto construido: {len(context)} caracteres")
-        
-        # Verificar si hay datos suficientes
-        if len(context.strip()) < 100:
+
+        # Si NO hay datos reales
+        if not clinical_data.has_data and len(similar_chunks) == 0:
             return QueryNoData(
                 status="no_data",
-                message="No se encontraron datos clínicos relevantes para el paciente",
+                message="No hay datos clínicos relevantes para este paciente",
                 metadata={
-                    "patient_id": patient_info['patient_id'],
+                    "patient_id": patient_info.patient_id,
+                    "patient_name": f"{patient_info.first_name} {patient_info.first_surname}",
                     "query_time_ms": int((time.time() - start_time) * 1000)
                 }
             )
-        
-        # === PASO 5: Consultar al LLM (Persona 5) ===
+
+        # 4. LLM
         llm_response = await llm_service.run_llm(
             question=input_data.question,
             context=context
         )
-        
-        # Determinar status
-        status = llm_service.determine_status(llm_response.text, context)
-        
-        if status == "no_data":
+
+        response_status = llm_service.determine_status(llm_response.text, context)
+
+        if response_status == "no_data":
             return QueryNoData(
                 status="no_data",
                 message=llm_response.text,
                 metadata={
-                    "patient_id": patient_info['patient_id'],
-                    "query_time_ms": int((time.time() - start_time) * 1000),
-                    "model_used": llm_response.model_used
+                    "patient_id": patient_info.patient_id,
+                    "model_used": llm_response.model_used,
+                    "query_time_ms": int((time.time() - start_time) * 1000)
                 }
             )
-        
-        # === PASO 6: Construir respuesta final ===
-        sources = build_sources(clinical_records, similar_chunks)
-        
-        query_time_ms = int((time.time() - start_time) * 1000)
-        
+
+        # 5. RESPUESTA FINAL
+        sources = build_sources_from_real_data(clinical_data.records, similar_chunks)
+
         response_data = {
+            "patient": {
+                "patient_id": patient_info.patient_id,
+                "name": f"{patient_info.first_name} {patient_info.first_surname}",
+                "document": patient_info.document_number
+            },
             "answer": {
                 "text": llm_response.text,
                 "confidence": llm_response.confidence,
@@ -269,26 +243,27 @@ async def query_patient(input_data: QueryInput):
             },
             "sources": sources,
             "metadata": {
-                "total_records_analyzed": len(clinical_records.get('appointments', [])) + 
-                                         len(clinical_records.get('medications', [])) +
-                                         len(similar_chunks),
-                "query_time_ms": query_time_ms,
-                "sources_used": len(sources),
-                "context_tokens": len(context.split()),
-                "model_used": llm_response.model_used,
-                "tokens_used": llm_response.tokens_used
+                "total_records_analyzed": (
+                    len(clinical_data.records.appointments) +
+                    len(clinical_data.records.medical_records) +
+                    len(clinical_data.records.prescriptions) +
+                    len(clinical_data.records.diagnoses) +
+                    len(similar_chunks)
+                ),
+                "appointments_count": len(clinical_data.records.appointments),
+                "prescriptions_count": len(clinical_data.records.prescriptions),
+                "diagnoses_count": len(clinical_data.records.diagnoses),
+                "vector_chunks_count": len(similar_chunks),
+                "context_length": len(context),
+                "tokens_used": llm_response.tokens_used,
+                "query_time_ms": int((time.time() - start_time) * 1000)
             }
         }
-        
-        logger.info(f"✅ Query completada en {query_time_ms}ms")
-        
-        return QuerySuccess(
-            status="success",
-            data=response_data
-        )
-    
+
+        return QuerySuccess(status="success", data=response_data)
+
     except Exception as e:
-        logger.error(f"❌ Error inesperado: {str(e)}")
+        logger.exception("❌ Error inesperado")
         return QueryError(
             status="error",
             error={
