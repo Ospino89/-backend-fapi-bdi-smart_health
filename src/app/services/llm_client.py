@@ -1,5 +1,6 @@
+# src/app/services/llm_client.py
 from openai import AsyncOpenAI
-from typing import Dict
+from typing import Dict, List
 import logging
 from app.database.db_config import settings
 
@@ -20,16 +21,6 @@ class LLMClient:
     async def generate(self, prompt: str, system_prompt: str) -> Dict:
         """
         Genera respuesta del LLM.
-        
-        Args:
-            prompt: Prompt del usuario con contexto
-            system_prompt: Instrucciones del sistema
-            
-        Returns:
-            Dict con 'text', 'model_used', 'tokens_used'
-            
-        Raises:
-            LLMError: Si hay error en la generación
         """
         try:
             # Preparar parámetros base
@@ -73,3 +64,36 @@ class LLMClient:
 
 # Instancia global del cliente
 llm_client = LLMClient()
+
+
+# ============================================================================
+# FUNCIÓN PARA VECTOR SEARCH (Persona 3)
+# ============================================================================
+
+async def get_embedding(text: str) -> List[float]:
+    """
+    Genera embedding de un texto usando OpenAI.
+    Usado por vector_search.py para convertir la pregunta en vector.
+    
+    Args:
+        text: Texto a convertir en embedding
+        
+    Returns:
+        Lista de floats representando el vector embedding
+    """
+    try:
+        client = AsyncOpenAI(api_key=settings.openai_api_key)
+        
+        response = await client.embeddings.create(
+            model="text-embedding-3-small",  # Modelo de embeddings de OpenAI
+            input=text
+        )
+        
+        embedding = response.data[0].embedding
+        logger.info(f"🔢 Embedding generado: {len(embedding)} dimensiones")
+        
+        return embedding
+        
+    except Exception as e:
+        logger.error(f"❌ Error generando embedding: {str(e)}")
+        raise Exception(f"Error al generar embedding: {str(e)}")

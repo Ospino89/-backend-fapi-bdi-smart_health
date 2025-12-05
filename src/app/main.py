@@ -45,4 +45,4 @@ def health():
 
 @app.get("/")
 def root():
-    return {"message": "Smart Health RAG API - Running"}
+    return {"message": "Smart Health RAG API - Running ✅"}

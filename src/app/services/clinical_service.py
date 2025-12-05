@@ -20,6 +20,7 @@ from app.schemas.clinical import (
     DiagnosisDTO,
     ClinicalRecords,
     ClinicalDataResult
+
 )
 
 logger = logging.getLogger(__name__)

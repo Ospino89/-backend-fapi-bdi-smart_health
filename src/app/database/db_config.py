@@ -44,3 +44,4 @@ if not ENV_PATH.exists():
     print(f"   Crea el archivo .env en la raíz del proyecto")
 
 settings = Settings()
+
