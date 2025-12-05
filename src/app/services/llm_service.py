@@ -60,36 +60,51 @@ class LLMService:
             # Construir el prompt
             user_prompt = build_user_prompt(question, context)
             
+            logger.info(f"🤖 Llamando al LLM. Contexto: {len(context)} chars")
+            
             # Llamar al LLM
             response = await llm_client.generate(
                 prompt=user_prompt,
                 system_prompt=SYSTEM_PROMPT
             )
             
-            # Validar respuesta
-            if not LLMService._validate_response(response['text']):
+            # Extraer texto de respuesta
+            response_text = response.get('text', '').strip()
+            
+            logger.info(f"✅ LLM respondió. Longitud: {len(response_text)} chars")
+            
+            # Validar respuesta (más permisivo)
+            if not LLMService._validate_response(response_text):
+                logger.error(f"❌ Validación falló. Respuesta: '{response_text[:100]}...'")
                 raise LLMError(
                     message="Respuesta del LLM inválida o incoherente",
-                    details={"response_length": len(response['text'])}
+                    details={
+                        "response_length": len(response_text),
+                        "response_preview": response_text[:200]
+                    }
                 )
             
             # Calcular confianza
             confidence = LLMService._calculate_confidence(
-                response['text'], 
+                response_text, 
                 context
             )
             
-            return LLMResponse(
-                text=response['text'],
+            llm_response = LLMResponse(
+                text=response_text,
                 confidence=confidence,
-                model_used=response['model_used'],
+                model_used=response.get('model_used', 'unknown'),
                 tokens_used=response.get('tokens_used', 0)
             )
+            
+            logger.info(f"📊 Confidence: {confidence}, Tokens: {llm_response.tokens_used}")
+            
+            return llm_response
             
         except LLMError:
             raise
         except Exception as e:
-            logger.error(f"Error inesperado en run_llm: {str(e)}")
+            logger.exception(f"Error inesperado en run_llm")
             raise LLMError(
                 message="Error inesperado al ejecutar LLM",
                 details={"error": str(e)}
@@ -112,45 +127,74 @@ class LLMService:
             "no se encuentra",
             "no hay datos",
             "no disponible",
-            "sin información"
+            "sin información",
+            "no dispongo"
         ]
         
         # Contexto muy corto
         if len(context.strip()) < 50:
-            return 0.2
-        
-        # Respuesta indica falta de datos
-        if any(indicator in answer_lower for indicator in no_data_indicators):
             return 0.3
         
-        # Respuesta muy corta
+        # Respuesta indica falta de datos
+        has_no_data_indicator = any(indicator in answer_lower for indicator in no_data_indicators)
+        if has_no_data_indicator:
+            return 0.4
+        
+        # Respuesta muy corta (pero válida)
         if len(answer) < 50:
-            return 0.5
+            return 0.6
         
         # Respuesta robusta con buen contexto
         if len(answer) > 100 and len(context) > 200:
-            return 0.9
+            return 0.92
+        
+        # Respuesta media con contexto medio
+        if len(answer) > 50 and len(context) > 100:
+            return 0.8
         
         # Caso promedio
-        return 0.7
+        return 0.75
     
     @staticmethod
     def _validate_response(answer: str) -> bool:
         """
         Valida que la respuesta del LLM sea coherente (P5-5).
+        VERSIÓN MEJORADA - Más permisiva pero segura.
         """
-        if not answer or len(answer.strip()) < 10:
+        # 1. Validación básica: no puede estar vacío
+        if not answer or not isinstance(answer, str):
+            logger.warning("Respuesta es None o no es string")
             return False
         
-        # Verificar que no sea puro texto repetido
-        words = answer.split()
-        if len(words) < 3:
+        answer_stripped = answer.strip()
+        
+        # 2. Debe tener al menos 5 caracteres
+        if len(answer_stripped) < 5:
+            logger.warning(f"Respuesta muy corta: {len(answer_stripped)} chars")
             return False
         
-        unique_ratio = len(set(words)) / len(words)
-        if unique_ratio < 0.3:  # Menos del 30% de palabras únicas
+        # 3. Debe tener al menos 2 palabras
+        words = answer_stripped.split()
+        if len(words) < 2:
+            logger.warning(f"Respuesta tiene menos de 2 palabras: {words}")
             return False
         
+        # 4. Verificar que no sea solo caracteres repetidos (ej: "aaaaaaa")
+        if len(set(answer_stripped.replace(' ', ''))) < 3:
+            logger.warning("Respuesta parece tener caracteres repetidos")
+            return False
+        
+        # 5. REMOVIDO: El chequeo de unique_ratio era demasiado estricto
+        #    Respuestas médicas legítimas pueden tener muchas palabras repetidas
+        #    como "paciente", "fecha", "diagnóstico", etc.
+        
+        # 6. Verificar que contenga al menos algunas letras
+        has_letters = any(c.isalpha() for c in answer_stripped)
+        if not has_letters:
+            logger.warning("Respuesta no contiene letras")
+            return False
+        
+        logger.debug(f"✅ Respuesta validada: {len(words)} palabras, {len(answer_stripped)} chars")
         return True
     
     @staticmethod
@@ -165,13 +209,19 @@ class LLMService:
         - Si el contexto está vacío -> no_data
         - Si la respuesta indica falta de información -> no_data
         - En otro caso -> success
+        
+        NOTA: Este método ya no es usado en el flujo principal (query.py),
+        pero se mantiene por compatibilidad.
         """
         no_data_indicators = [
             "no hay información",
             "no se encuentra",
             "no hay datos",
             "no disponible",
-            "sin información"
+            "sin información",
+            "no dispongo",
+            "no se encontr",
+            "no registr"
         ]
         
         answer_lower = answer_text.lower()
@@ -180,8 +230,9 @@ class LLMService:
         if len(context.strip()) < 20:
             return "no_data"
         
-        # Respuesta indica falta de datos
-        if any(indicator in answer_lower for indicator in no_data_indicators):
+        # Respuesta indica falta de datos de forma prominente
+        # (debe estar al inicio o aparecer múltiples veces)
+        if any(indicator in answer_lower[:100] for indicator in no_data_indicators):
             return "no_data"
         
         return "success"
