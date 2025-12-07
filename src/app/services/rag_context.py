@@ -51,7 +51,15 @@ def build_context(
         for appt in sorted_appts:
             time_str = f" a las {appt.start_time}" if appt.start_time else ""
             reason_str = f": {appt.reason}" if appt.reason else ""
-            parts.append(f"- {appt.appointment_date}{time_str}{reason_str}")
+            
+            # ✅ Agregar información del doctor si está disponible
+            doctor_info = ""
+            if appt.doctor_name:
+                doctor_info = f" con {appt.doctor_name}"
+                if appt.specialty_name:
+                    doctor_info += f" ({appt.specialty_name})"
+            
+            parts.append(f"- {appt.appointment_date}{time_str}{doctor_info}{reason_str}")
 
     if records.diagnoses:
         parts.append("\n### Diagnósticos Registrados")
@@ -76,7 +84,15 @@ def build_context(
         for chunk in sorted_chunks:
             parts.append(f"[Relevancia: {chunk.relevance_score:.2f}] {chunk.chunk_text}")
             date_str = f" ({chunk.date.strftime('%Y-%m-%d')})" if chunk.date else ""
-            parts.append(f"[Fuente: {chunk.source_type} ID {chunk.source_id}{date_str}]")
+            
+            # ✅ Agregar info del doctor si es appointment
+            doctor_info = ""
+            if chunk.source_type == "appointment" and chunk.doctor_name:
+                doctor_info = f", Doctor: {chunk.doctor_name}"
+                if chunk.specialty_name:
+                    doctor_info += f" ({chunk.specialty_name})"
+            
+            parts.append(f"[Fuente: {chunk.source_type} ID {chunk.source_id}{date_str}{doctor_info}]")
             parts.append("")
 
     full_text = "\n".join(parts)
@@ -93,24 +109,71 @@ def build_sources(
     similar_chunks: List[SimilarChunk],
     records: ClinicalRecords
 ) -> List[Dict[str, Any]]:
+    """
+    Construye la lista de sources según la especificación del proyecto.
+    Incluye información del doctor para appointments.
+    """
     sources = []
+    source_counter = 1
+    
+    # Vector chunks
     for chunk in similar_chunks:
-        sources.append({
-            "type": "vector_search",
-            "source_type": chunk.source_type,
-            "source_id": chunk.source_id,
+        source = {
+            "source_id": source_counter,
+            "type": chunk.source_type,
+            "original_source_id": chunk.source_id,
             "patient_id": chunk.patient_id,
             "relevance_score": round(chunk.relevance_score, 3),
             "text_snippet": chunk.chunk_text[:250]
-        })
+        }
+        
+        # ✅ Si es appointment, agregar info del doctor
+        if chunk.source_type == "appointment":
+            if chunk.doctor_name or chunk.specialty_name:
+                doctor_info = {}
+                if chunk.doctor_name:
+                    doctor_info["name"] = chunk.doctor_name
+                if chunk.specialty_name:
+                    doctor_info["specialty"] = chunk.specialty_name
+                if chunk.medical_license:
+                    doctor_info["medical_license"] = chunk.medical_license
+                
+                if doctor_info:
+                    source["doctor"] = doctor_info
+        
+        sources.append(source)
+        source_counter += 1
+    
+    # Clinical appointments
     for appt in records.appointments:
-        sources.append({
-            "type": "clinical_record",
-            "source_type": "appointment",
+        source = {
+            "source_id": source_counter,
+            "type": "appointment",
             "appointment_id": appt.appointment_id,
             "date": appt.appointment_date.isoformat(),
-            "text_snippet": (appt.reason or "")[:250]
-        })
+            "text_snippet": (appt.reason or "")[:250],
+            "relevance_score": 0.98  # Alta relevancia para datos directos
+        }
+        
+        # ✅ Agregar info del doctor
+        if appt.doctor_name or appt.specialty_name:
+            doctor_info = {}
+            if appt.doctor_name:
+                doctor_info["name"] = appt.doctor_name
+            if appt.specialty_name:
+                doctor_info["specialty"] = appt.specialty_name
+            if appt.medical_license_number:
+                doctor_info["medical_license"] = appt.medical_license_number
+            
+            if doctor_info:
+                source["doctor"] = doctor_info
+        
+        if appt.reason:
+            source["reason"] = appt.reason
+        
+        sources.append(source)
+        source_counter += 1
+    
     return sources
 
 

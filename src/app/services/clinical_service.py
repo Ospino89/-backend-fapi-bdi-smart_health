@@ -1,6 +1,7 @@
 # src/app/services/clinical_service.py
 from typing import Optional, Tuple, List
 from sqlalchemy.orm import Session
+from sqlalchemy import text
 import logging
 
 # Modelos SQLAlchemy
@@ -20,7 +21,6 @@ from app.schemas.clinical import (
     DiagnosisDTO,
     ClinicalRecords,
     ClinicalDataResult
-
 )
 
 logger = logging.getLogger(__name__)
@@ -54,8 +54,22 @@ def get_patient_by_document(
     if not patient:
         return None
 
-    # Mapear a Pydantic usando orm_mode
-    return PatientInfo.from_orm(patient)
+    # ✅ Mapear manualmente para manejar registration_date correctamente
+    return PatientInfo(
+        patient_id=patient.patient_id,
+        first_name=patient.first_name,
+        middle_name=patient.middle_name,
+        first_surname=patient.first_surname,
+        second_surname=patient.second_surname,
+        birth_date=patient.birth_date,
+        gender=patient.gender,
+        email=patient.email,
+        document_type_id=patient.document_type_id,
+        document_number=patient.document_number,
+        registration_date=patient.registration_date,  # Ya es datetime desde la BD
+        active=patient.active,
+        blood_type=patient.blood_type
+    )
 
 
 # ============================================================================ 
@@ -64,21 +78,69 @@ def get_patient_by_document(
 
 def get_appointments_by_patient(db: Session, patient_id: int) -> List[AppointmentDTO]:
     """
-    Obtiene todas las citas de un paciente, ordenadas por fecha descendente.
+    Obtiene todas las citas de un paciente con información del doctor,
+    ordenadas por fecha descendente.
     """
     try:
-        appointments = (
-            db.query(Appointment)
-            .filter(Appointment.patient_id == patient_id)
-            .order_by(Appointment.appointment_date.desc())
-            .all()
-        )
+        # Query optimizada con DISTINCT ON para evitar duplicados
+        # Toma la primera especialidad activa si el doctor tiene varias
+        query = text("""
+            SELECT DISTINCT ON (a.appointment_id)
+                a.appointment_id,
+                a.patient_id,
+                a.doctor_id,
+                a.room_id,
+                a.appointment_date,
+                a.start_time,
+                a.end_time,
+                a.appointment_type,
+                a.status,
+                a.reason,
+                a.creation_date,
+                d.first_name || ' ' || d.last_name AS doctor_name,
+                s.specialty_name,
+                d.medical_license_number
+            FROM smart_health.appointments a
+            INNER JOIN smart_health.doctors d ON a.doctor_id = d.doctor_id
+            LEFT JOIN smart_health.doctor_specialties ds ON d.doctor_id = ds.doctor_id AND ds.is_active = TRUE
+            LEFT JOIN smart_health.specialties s ON ds.specialty_id = s.specialty_id
+            WHERE a.patient_id = :patient_id
+            ORDER BY a.appointment_id, ds.certification_date DESC NULLS LAST
+        """)
+        
+        result = db.execute(query, {"patient_id": patient_id})
+        rows = result.fetchall()
+        
+        # Convertir a DTOs
+        appointments = []
+        for row in rows:
+            apt_dict = {
+                'appointment_id': row.appointment_id,
+                'patient_id': row.patient_id,
+                'doctor_id': row.doctor_id,
+                'room_id': row.room_id,
+                'appointment_date': row.appointment_date,
+                'start_time': row.start_time,
+                'end_time': row.end_time,
+                'appointment_type': row.appointment_type,
+                'status': row.status,
+                'reason': row.reason,
+                'creation_date': row.creation_date,
+                # Campos del doctor
+                'doctor_name': row.doctor_name,
+                'specialty_name': row.specialty_name,
+                'medical_license_number': row.medical_license_number,
+            }
+            appointments.append(AppointmentDTO(**apt_dict))
+        
+        # Ordenar por fecha después de eliminar duplicados
+        appointments.sort(key=lambda x: (x.appointment_date, x.start_time or x.creation_date), reverse=True)
+        
+        return appointments
+        
     except Exception:
         logger.exception("Error ejecutando query get_appointments_by_patient")
         raise
-
-    # Convertir objetos SQLAlchemy a DTOs Pydantic
-    return [AppointmentDTO.from_orm(apt) for apt in appointments]
 
 
 def get_medical_records_by_patient(db: Session, patient_id: int) -> List[MedicalRecordDTO]:
@@ -101,62 +163,107 @@ def get_medical_records_by_patient(db: Session, patient_id: int) -> List[Medical
 
 def get_prescriptions_by_patient(db: Session, patient_id: int) -> List[PrescriptionDTO]:
     """
-    Obtiene todas las prescripciones de un paciente (a través de medical_records).
+    Obtiene todas las prescripciones de un paciente con el nombre del medicamento.
     """
     try:
-        prescriptions = (
-            db.query(Prescription)
-            .join(
-                MedicalRecord,
-                Prescription.medical_record_id == MedicalRecord.medical_record_id
-            )
-            .filter(MedicalRecord.patient_id == patient_id)
-            .order_by(Prescription.prescription_date.desc())
-            .all()
-        )
+        query = text("""
+            SELECT 
+                p.prescription_id,
+                p.medical_record_id,
+                p.medication_id,
+                p.dosage,
+                p.frequency,
+                p.duration,
+                p.instruction,
+                p.prescription_date,
+                p.alert_generated,
+                COALESCE(m.commercial_name, 'Medicamento no especificado') AS medication_name,
+                m.active_ingredient,
+                m.presentation AS pharmaceutical_form
+            FROM smart_health.prescriptions p
+            INNER JOIN smart_health.medical_records mr 
+                ON p.medical_record_id = mr.medical_record_id
+            LEFT JOIN smart_health.medications m 
+                ON p.medication_id = m.medication_id
+            WHERE mr.patient_id = :patient_id
+            ORDER BY p.prescription_date DESC
+        """)
+        
+        result = db.execute(query, {"patient_id": patient_id})
+        rows = result.fetchall()
+        
+        prescriptions = []
+        for row in rows:
+            presc_dict = {
+                'prescription_id': row.prescription_id,
+                'medical_record_id': row.medical_record_id,
+                'medication_id': row.medication_id,
+                'dosage': row.dosage,
+                'frequency': row.frequency,
+                'duration': row.duration,
+                'instruction': row.instruction,
+                'prescription_date': row.prescription_date,
+                'alert_generated': row.alert_generated,
+                'medication_name': row.medication_name,
+                'active_ingredient': row.active_ingredient,
+                'pharmaceutical_form': row.pharmaceutical_form,
+            }
+            prescriptions.append(PrescriptionDTO(**presc_dict))
+        
+        return prescriptions
+        
     except Exception:
         logger.exception("Error ejecutando query get_prescriptions_by_patient")
         raise
 
-    return [PrescriptionDTO.from_orm(presc) for presc in prescriptions]
-
 
 def get_diagnoses_by_patient(db: Session, patient_id: int) -> List[DiagnosisDTO]:
     """
-    Obtiene todos los diagnósticos de un paciente (a través de record_diagnoses).
-    Como es un JOIN de dos tablas, se mapea manualmente.
+    Obtiene todos los diagnósticos de un paciente con la fecha del registro médico.
     """
     try:
-        results = (
-            db.query(Diagnosis, RecordDiagnosis)
-            .join(
-                RecordDiagnosis,
-                Diagnosis.diagnosis_id == RecordDiagnosis.diagnosis_id
-            )
-            .join(
-                MedicalRecord,
-                RecordDiagnosis.medical_record_id == MedicalRecord.medical_record_id
-            )
-            .filter(MedicalRecord.patient_id == patient_id)
-            .all()
-        )
+        # ✅ Query con SQL directo para obtener la fecha del medical_record
+        query = text("""
+            SELECT 
+                rd.record_diagnosis_id,
+                d.diagnosis_id,
+                d.icd_code,
+                d.description,
+                rd.diagnosis_type,
+                rd.note,
+                mr.registration_datetime AS diagnosis_date
+            FROM smart_health.diagnoses d
+            INNER JOIN smart_health.record_diagnoses rd 
+                ON d.diagnosis_id = rd.diagnosis_id
+            INNER JOIN smart_health.medical_records mr 
+                ON rd.medical_record_id = mr.medical_record_id
+            WHERE mr.patient_id = :patient_id
+            ORDER BY mr.registration_datetime DESC
+        """)
+        
+        result = db.execute(query, {"patient_id": patient_id})
+        rows = result.fetchall()
+        
+        # Convertir a DTOs
+        diagnoses = []
+        for row in rows:
+            diag_dict = {
+                'record_diagnosis_id': row.record_diagnosis_id,
+                'diagnosis_id': row.diagnosis_id,
+                'icd_code': row.icd_code,
+                'description': row.description,
+                'diagnosis_type': row.diagnosis_type,
+                'note': row.note,
+                # ✅ Fecha del diagnóstico (del medical_record)
+                'diagnosis_date': row.diagnosis_date,
+            }
+            diagnoses.append(DiagnosisDTO(**diag_dict))
+        
+        return diagnoses
+        
     except Exception:
         logger.exception("Error ejecutando query get_diagnoses_by_patient")
         raise
-
-    # Mapear manualmente porque no es un objeto ORM directo
-    diagnoses: List[DiagnosisDTO] = []
-    for diag, rd in results:
-        diagnoses.append(DiagnosisDTO(
-            record_diagnosis_id=rd.record_diagnosis_id,
-            diagnosis_id=diag.diagnosis_id,
-            icd_code=diag.icd_code,
-            description=diag.description,
-            diagnosis_type=rd.diagnosis_type,
-            note=rd.note
-        ))
-
-    return diagnoses
 
 
 # ============================================================================ 
