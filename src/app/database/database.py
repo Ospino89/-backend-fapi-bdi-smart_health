@@ -9,10 +9,13 @@ DATABASE_URL = (
     f"{settings.db_host}:{settings.db_port}/{settings.db_name}"
 )
 
-# Añadir SSL si estamos en producción
+
+#} Añadir SSL si estamos en producción
 if settings.app_env == "production":
     DATABASE_URL += "?sslmode=require"
 
+
+#produccion
 engine = create_engine(
     DATABASE_URL,
     echo=False,  # Desactivar logs en producción

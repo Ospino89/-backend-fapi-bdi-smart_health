@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from .routers import auth, user
+from .routers import auth, user , query 
 from .database.database import Base, engine
 
 # Crear tablas en la base de datos
@@ -32,6 +32,7 @@ app.add_middleware(
 # Incluir routers
 app.include_router(auth.router)
 app.include_router(user.router)
+app.include_router(query.router) 
 
 # Endpoint raíz
 @app.get("/", tags=["Root"])
