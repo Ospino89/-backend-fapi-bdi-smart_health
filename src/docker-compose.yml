@@ -1,48 +1,70 @@
-# NO incluir 'version', ya no es necesario
 services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: smarthealth_postgres
-    restart: unless-stopped
-    environment:
-      POSTGRES_USER: sm_admin
-      POSTGRES_PASSWORD: sm2025
-      POSTGRES_DB: smarthdb
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    networks:
-      - smarthealth_network
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sm_admin -d smarthdb"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+  # Servicio de Base de Datos PostgreSQL
+  - type: pserv
+    name: smarthealth-db
+    env: docker
+    plan: free  # Cambia a 'starter' o superior en producción
+    region: oregon
+    databases:
+      - name: neondb
+        user: neondb_owner
 
-  api:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: smarthealth_api
-    restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
-
-    env_file:
-      - ./.env
-  
-    ports:
-      - "8088:8088"
-    volumes:
-      - ./src:/app/src
-    networks:
-      - smarthealth_network
-
-networks:
-  smarthealth_network:
-    driver: bridge
-
-volumes:
-  postgres_data:
+  # Servicio de API Backend
+  - type: web
+    name: smarthealth-api
+    env: docker
+    region: oregon
+    plan: free  # Cambia a 'starter' o superior en producción
+    dockerfilePath: ./src/Dockerfile
+    dockerContext: .
+    
+    # Variables de entorno
+    envVars:
+      - key: APP_ENV
+        value: production
+      
+      - key: DB_HOST
+        fromDatabase:
+          name: smarthealth-db
+          property: host
+      
+      - key: DB_PORT
+        fromDatabase:
+          name: smarthealth-db
+          property: port
+      
+      - key: DB_NAME
+        fromDatabase:
+          name: smarthealth-db
+          property: database
+      
+      - key: DB_USER
+        fromDatabase:
+          name: smarthealth-db
+          property: user
+      
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: smarthealth-db
+          property: password
+      
+      - key: SECRET_KEY
+        generateValue: true  # Render generará una clave segura
+      
+      - key: OPENAI_API_KEY
+        sync: false  # Deberás agregarlo manualmente en el dashboard
+      
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      
+      - key: LLM_TEMPERATURE
+        value: 0.1
+      
+      - key: LLM_MAX_TOKENS
+        value: 500
+      
+      - key: LLM_TIMEOUT
+        value: 30
+    
+    # Health check
+    healthCheckPath: /health
