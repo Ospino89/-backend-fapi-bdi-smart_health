@@ -124,4 +124,4 @@ uvicorn app.main:app --reload
 
 API: http://localhost:8088
 Documentación Swagger: http://localhost:8088/docs
-Documentación ReDoc: http://localhost:8088/redoc
+Documentación ReDoc: http://localhost:8088/redocTest commit Tue Dec  9 01:44:19 HPS 2025
