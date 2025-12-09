@@ -156,6 +156,5 @@ uvicorn app.main:app --reload
 
 API: http://127.0.0.1:8000
 Documentación Swagger: http://127.0.0.1:8000/docs
-URL de Producción
-https://smarthealth-api-926g.onrender.com/docs
+URL de Producción: https://smarthealth-api-926g.onrender.com/docs
 
