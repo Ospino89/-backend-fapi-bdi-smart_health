@@ -21,10 +21,6 @@
             padding: 20px;
         }
         
-        /* ============================================ */
-        /* PANTALLA DE LOGIN */
-        /* ============================================ */
-        
         .login-container {
             background: white;
             border-radius: 20px;
@@ -117,10 +113,6 @@
             display: block;
         }
         
-        /* ============================================ */
-        /* PANTALLA DE CHAT */
-        /* ============================================ */
-        
         .chat-container {
             background: white;
             border-radius: 20px;
@@ -136,7 +128,6 @@
             display: flex;
         }
         
-        /* Header del chat */
         .chat-header {
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
@@ -172,7 +163,6 @@
             background: rgba(255,255,255,0.3);
         }
         
-        /* Configuración del paciente */
         .patient-config {
             background: #f8f9fa;
             padding: 20px 25px;
@@ -196,7 +186,6 @@
             border-color: #667eea;
         }
         
-        /* Mensajes */
         .messages-container {
             flex: 1;
             overflow-y: auto;
@@ -279,7 +268,6 @@
             border-radius: 12px 0 12px 12px;
         }
         
-        /* Status indicator */
         .status-indicator {
             padding: 10px 20px;
             background: #e3f2fd;
@@ -295,7 +283,6 @@
             display: block;
         }
         
-        /* Typing indicator */
         .typing-indicator {
             display: none;
             padding: 15px;
@@ -340,7 +327,6 @@
             }
         }
         
-        /* Input area */
         .input-area {
             padding: 20px 25px;
             background: white;
@@ -395,7 +381,6 @@
             cursor: not-allowed;
         }
         
-        /* Metadata box */
         .metadata-box {
             background: #f0f4ff;
             border-left: 4px solid #667eea;
@@ -410,12 +395,10 @@
             color: #333;
         }
         
-        /* Hidden class */
         .hidden {
             display: none !important;
         }
         
-        /* Scrollbar personalizado */
         .messages-container::-webkit-scrollbar {
             width: 8px;
         }
@@ -435,9 +418,6 @@
     </style>
 </head>
 <body>
-    <!-- ============================================ -->
-    <!-- PANTALLA DE LOGIN -->
-    <!-- ============================================ -->
     <div class="login-container" id="loginScreen">
         <div class="login-header">
             <h1>🏥 Smart Health</h1>
@@ -473,11 +453,7 @@
         </form>
     </div>
     
-    <!-- ============================================ -->
-    <!-- PANTALLA DE CHAT -->
-    <!-- ============================================ -->
     <div class="chat-container" id="chatScreen">
-        <!-- Header -->
         <div class="chat-header">
             <div class="chat-header-info">
                 <h2>💬 Chat Médico IA</h2>
@@ -488,7 +464,6 @@
             </button>
         </div>
         
-        <!-- Configuración del paciente -->
         <div class="patient-config">
             <select id="docType">
                 <option value="1">CC - Cédula</option>
@@ -504,7 +479,6 @@
             >
         </div>
         
-        <!-- Mensajes -->
         <div class="messages-container" id="messagesContainer">
             <div class="message assistant">
                 <div class="message-avatar">🤖</div>
@@ -514,8 +488,8 @@
                         <span class="message-time" id="welcomeTime"></span>
                     </div>
                     <div class="message-text">
-                        ¡Hola! Soy tu asistente médico inteligente. 👋
-                        
+¡Hola! Soy tu asistente médico inteligente. 👋
+
 Puedo ayudarte a consultar información sobre:
 - 📅 Citas médicas
 - 💊 Medicamentos y prescripciones
@@ -528,10 +502,8 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             </div>
         </div>
         
-        <!-- Status indicator -->
         <div class="status-indicator" id="statusIndicator"></div>
         
-        <!-- Typing indicator -->
         <div class="typing-indicator" id="typingIndicator">
             <div class="message-avatar">🤖</div>
             <div class="typing-dots">
@@ -541,7 +513,6 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             </div>
         </div>
         
-        <!-- Input -->
         <div class="input-area">
             <div class="input-wrapper">
                 <textarea 
@@ -557,20 +528,12 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
     </div>
 
     <script>
-        // ============================================
-        // VARIABLES GLOBALES
-        // ============================================
-        
         let authToken = null;
         let ws = null;
         let currentUserEmail = null;
         
-        const API_BASE = 'http://localhost:8088';
-        const WS_BASE = 'ws://localhost:8088';
-        
-        // ============================================
-        // FUNCIONES DE LOGIN
-        // ============================================
+        const API_BASE = 'http://localhost:8000';
+        const WS_BASE = 'ws://localhost:8000';
         
         async function handleLogin(event) {
             event.preventDefault();
@@ -580,7 +543,6 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             const loginBtn = document.getElementById('loginBtn');
             const errorDiv = document.getElementById('loginError');
             
-            // Deshabilitar botón
             loginBtn.disabled = true;
             loginBtn.textContent = '⏳ Iniciando sesión...';
             errorDiv.classList.remove('show');
@@ -599,13 +561,11 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
                     authToken = data.access_token;
                     currentUserEmail = email;
                     
-                    // Mostrar chat
                     document.getElementById('loginScreen').style.display = 'none';
                     document.getElementById('chatScreen').classList.add('active');
                     document.getElementById('userEmail').textContent = email;
                     document.getElementById('welcomeTime').textContent = getCurrentTime();
                     
-                    // Conectar WebSocket
                     connectWebSocket();
                     
                 } else {
@@ -614,7 +574,7 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
                 }
                 
             } catch (error) {
-                showError('Error de conexión. ¿Está corriendo FastAPI?');
+                showError('Error de conexión. ¿Está corriendo el servidor en localhost:8088?');
                 console.error('Error:', error);
             } finally {
                 loginBtn.disabled = false;
@@ -638,21 +598,15 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             document.getElementById('chatScreen').classList.remove('active');
             document.getElementById('loginScreen').style.display = 'block';
             
-            // Limpiar formulario
             document.getElementById('email').value = '';
             document.getElementById('password').value = '';
             
-            // Limpiar mensajes (excepto el de bienvenida)
             const container = document.getElementById('messagesContainer');
             const messages = container.querySelectorAll('.message');
             messages.forEach((msg, index) => {
                 if (index > 0) msg.remove();
             });
         }
-        
-        // ============================================
-        // FUNCIONES DE WEBSOCKET
-        // ============================================
         
         function connectWebSocket() {
             if (!authToken) return;
@@ -711,7 +665,6 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
                     break;
                     
                 case 'complete':
-                    // Agregar metadata
                     if (currentMessageDiv) {
                         const meta = data.metadata;
                         const patient = data.patient_info;
@@ -741,10 +694,6 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             }
         }
         
-        // ============================================
-        // FUNCIONES DE MENSAJES
-        // ============================================
-        
         function sendMessage() {
             const input = document.getElementById('messageInput');
             const docType = document.getElementById('docType').value;
@@ -765,17 +714,11 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
                 return;
             }
             
-            // Agregar mensaje del usuario
             addUserMessage(question);
-            
-            // Limpiar input
             input.value = '';
-            
-            // Deshabilitar input
             disableInput();
             showTyping(true);
             
-            // Enviar query
             const query = {
                 type: "query",
                 session_id: `session-${Date.now()}`,
@@ -828,10 +771,6 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             
             return messageDiv;
         }
-        
-        // ============================================
-        // FUNCIONES AUXILIARES
-        // ============================================
         
         function disableInput() {
             document.getElementById('messageInput').disabled = true;
@@ -893,7 +832,6 @@ Ingresa el documento del paciente arriba y hazme tu pregunta.
             }
         }
         
-        // Auto-resize textarea
         document.addEventListener('DOMContentLoaded', () => {
             const textarea = document.getElementById('messageInput');
             textarea.addEventListener('input', function() {
