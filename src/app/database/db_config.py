@@ -2,8 +2,6 @@ import os
 from pydantic_settings import BaseSettings
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
-# Encontrar la raíz del proyecto (donde está el .env)
-# Desde db_config.py -> database -> app -> src -> raíz
 
 
 class Settings(BaseSettings):

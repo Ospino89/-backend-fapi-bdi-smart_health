@@ -1,5 +1,5 @@
 # src/app/services/clinical_service.py
-from typing import Optional, Tuple, List
+from typing import Optional, Tuple, List, Union
 from sqlalchemy.orm import Session
 from sqlalchemy import text
 import logging
@@ -11,6 +11,7 @@ from ..models.medical_record import MedicalRecord
 from ..models.prescription import Prescription
 from ..models.diagnosis import Diagnosis
 from ..models.record_diagnosis import RecordDiagnosis
+
 
 # Schemas Pydantic
 from ..schemas.clinical import (
