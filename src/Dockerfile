@@ -22,7 +22,6 @@ RUN pip install --no-cache-dir --upgrade pip && \
 
 # Copiar código de la aplicación
 COPY ./src /app/src
-COPY ./docs /app/docs
 
 # IMPORTANTE: NO copiar .env al contenedor
 # Render manejará las variables de entorno
