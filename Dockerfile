@@ -27,16 +27,15 @@ COPY ./src /app/src
 # Render manejará las variables de entorno
 
 # Exponer puerto (Render usa la variable PORT)
-EXPOSE 8088
+EXPOSE 10000
 
 # Variables de entorno
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONPATH=/app
 
-# Health check
+# Health check - Ajustado al puerto que Render detectó
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
-    CMD curl -f http://localhost:8088/health || exit 1
+    CMD curl -f http://localhost:${PORT:-10000}/health || exit 1
 
-# Comando para ejecutar
-# Render usa la variable $PORT, así que haremos que sea flexible
-CMD uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-8088}
+# Comando para ejecutar - Render inyecta $PORT automáticamente
+CMD uvicorn src.app.main:app --host 0.0.0.0 --port ${PORT:-10000}
