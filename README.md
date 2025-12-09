@@ -27,18 +27,18 @@ Las contribuciones y los comentarios siempre son bienvenidos. ¡Explora y descub
 
 **Subcarpetas**:
 - **[database/](./src/app/database/):**  
-- `database.py`: Configuración de la conexión a PostgreSQL con pgvector.
+  - `database.py`: Configuración de la conexión a PostgreSQL con pgvector.
 
 - **[models/](./src/app/models/):**  
   Definición de los modelos SQLAlchemy.
 
-- `user.py`: Modelo para la entidad "usuario".  
-- `patient.py`: Modelo para la entidad "paciente".
-- `appointment.py`: Modelo para la entidad "citas médicas".
-- `diagnosis.py`:Modelo para la entidad "diagnósticos".
-- `prescription.py`: Modelo para la entidad "prescripciones médicas".
-- `medical_record.py`: Modelo para la entidad "registros médicos".
-- `record_diagnosis.py`: Modelo de relación muchos-a-muchos entre registros médicos y diagnósticos.
+  - `user.py`: Modelo para la entidad "usuario".  
+  - `patient.py`: Modelo para la entidad "paciente".
+  - `appointment.py`: Modelo para la entidad "citas médicas".
+  - `diagnosis.py`:Modelo para la entidad "diagnósticos".
+  - `prescription.py`: Modelo para la entidad "prescripciones médicas".
+  - `medical_record.py`: Modelo para la entidad "registros médicos".
+  - `record_diagnosis.py`: Modelo de relación muchos-a-muchos entre registros médicos y diagnósticos.
 
 
 - **[routers/](./src/app/routers/):**  
@@ -48,7 +48,7 @@ Las contribuciones y los comentarios siempre son bienvenidos. ¡Explora y descub
   - `query.py`: API para realizar consultas inteligentes usando RAG (Retrieval-Augmented Generation).
 
 
-  - **[schemas/](./src/app/schemas/):**  
+- **[schemas/](./src/app/schemas/):**  
   Esquemas de Pydantic para validación y serialización de datos.  
   - `user.py`: Esquema para la entidad "usuario".  
   - `rag.py`: Esquemas para las consultas RAG (QueryRequest, QueryResponse).
@@ -70,7 +70,7 @@ Las contribuciones y los comentarios siempre son bienvenidos. ¡Explora y descub
 
 - **[core/](./src/app/core/):**
   Logica de la seguridad 
-- `security.py`: Logica de la seguridad de la API    
+  - `security.py`: Logica de la seguridad de la API    
 
 **Archivo Principal**:
 - `main.py`: Punto de entrada de la aplicación.
