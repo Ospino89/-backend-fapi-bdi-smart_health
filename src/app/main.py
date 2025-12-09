@@ -30,112 +30,49 @@ except Exception as e:
     logger.error(f"Error creando tablas: {str(e)}")
     raise
 
-# Crear aplicación
+# Crear aplicación con CDN alternativas para Swagger
 app = FastAPI(
     title="SmartHealth API",
     description="API REST y WebSocket para sistema de gestión de salud con RAG",
     version="2.0.0",
     docs_url="/docs" if settings.app_env == "development" else None,
     redoc_url="/redoc" if settings.app_env == "development" else None,
-    openapi_url="/openapi.json" if settings.app_env == "development" else None
+    openapi_url="/openapi.json" if settings.app_env == "development" else None,
+    # ✅ URLs alternativas para los assets de Swagger
+    swagger_ui_parameters={
+        "syntaxHighlight.theme": "monokai",
+        "tryItOutEnabled": True
+    }
 )
 
 # ============================================================
 # MIDDLEWARES DE SEGURIDAD
 # ============================================================
 
-# 1. CORS - Configuración restrictiva
-if settings.app_env == "production":
-    # En producción, especificar dominios exactos
-    allowed_origins = os.getenv("CORS_ORIGINS", "").split(",")
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=allowed_origins,
-        allow_credentials=True,
-        allow_methods=["GET", "POST", "PUT", "DELETE"],
-        allow_headers=["Authorization", "Content-Type"],
-        max_age=3600
-    )
-else:
-    # En desarrollo, permitir todos los orígenes
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# 1. CORS - Configuración permisiva para desarrollo
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # En desarrollo, permitir todos
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-# 2. Trusted Host Middleware (protección contra host header poisoning)
-if settings.app_env == "production":
-    app.add_middleware(
-        TrustedHostMiddleware,
-        allowed_hosts=os.getenv("ALLOWED_HOSTS", "localhost").split(",")
-    )
-
-# 3. Rate Limiting Middleware (simple)
-class RateLimitMiddleware:
-    def __init__(self, app, max_requests: int = 100, window: int = 60):
-        self.app = app
-        self.max_requests = max_requests
-        self.window = window
-        self.requests: Dict[str, list] = {}
-    
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-        
-        # Obtener IP del cliente
-        client_ip = scope.get("client")[0] if scope.get("client") else "unknown"
-        
-        # Limpiar requests antiguas
-        current_time = time.time()
-        if client_ip in self.requests:
-            self.requests[client_ip] = [
-                req_time for req_time in self.requests[client_ip]
-                if current_time - req_time < self.window
-            ]
-        else:
-            self.requests[client_ip] = []
-        
-        # Verificar límite
-        if len(self.requests[client_ip]) >= self.max_requests:
-            response = JSONResponse(
-                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
-                content={"detail": "Too many requests"}
-            )
-            await response(scope, receive, send)
-            return
-        
-        # Agregar request actual
-        self.requests[client_ip].append(current_time)
-        
-        await self.app(scope, receive, send)
-
-# Solo en producción
-if settings.app_env == "production":
-    app.add_middleware(
-        RateLimitMiddleware,
-        max_requests=int(os.getenv("GLOBAL_RATE_LIMIT", "100")),
-        window=60
-    )
-
-# 4. Security Headers Middleware
+# 2. Security Headers Middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
     
-    # Headers de seguridad
-    response.headers["X-Content-Type-Options"] = "nosniff"
-    response.headers["X-Frame-Options"] = "DENY"
-    response.headers["X-XSS-Protection"] = "1; mode=block"
-    response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    response.headers["Content-Security-Policy"] = "default-src 'self'"
+    # Headers de seguridad solo en producción
+    if settings.app_env == "production":
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "DENY"
+        response.headers["X-XSS-Protection"] = "1; mode=block"
+        response.headers["Strict-Transport-Security"] = "max-age=31536000"
     
     return response
 
-# 5. Request Logging Middleware
+# 3. Request Logging Middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
@@ -246,33 +183,51 @@ def root():
             "websocket": True,
             "rag_enabled": True,
             "streaming": True,
-            "authentication": True,
-            "rate_limiting": settings.app_env == "production"
+            "authentication": True
         },
         "endpoints": {
             "docs": "/docs" if settings.app_env == "development" else None,
             "redoc": "/redoc" if settings.app_env == "development" else None,
-            "websocket": "ws://localhost:8088/ws/chat",
+            "websocket": "ws://localhost:8000/ws/chat",
             "health": "/health"
         }
     }
 
+# src/app/main.py - Reemplazar el endpoint /health con esta versión corregida
+
 @app.get("/health", tags=["Health"])
 def health():
     """Health check endpoint"""
+    db_status = "disconnected"
+    error_details = None
+    
     try:
         # Verificar conexión a base de datos
         from .database.database import SessionLocal
+        from sqlalchemy import text
+        
         db = SessionLocal()
-        db.execute("SELECT 1")
-        db.close()
-        db_status = "connected"
+        try:
+            # Intentar una query simple
+            result = db.execute(text("SELECT 1"))
+            result.scalar()
+            db_status = "connected"
+        except Exception as db_error:
+            db_status = "disconnected"
+            error_details = str(db_error)
+            logger.error(f"Database health check failed: {db_error}")
+        finally:
+            db.close()
+            
     except Exception as e:
-        logger.error(f"Database health check failed: {str(e)}")
-        db_status = "disconnected"
+        db_status = "error"
+        error_details = str(e)
+        logger.error(f"Database health check error: {e}")
     
-    return {
-        "status": "healthy" if db_status == "connected" else "unhealthy",
+    is_healthy = db_status == "connected"
+    
+    response = {
+        "status": "healthy" if is_healthy else "unhealthy",
         "timestamp": time.time(),
         "environment": settings.app_env,
         "services": {
@@ -282,16 +237,12 @@ def health():
             "websocket": "enabled"
         }
     }
-
-@app.get("/version", tags=["Info"])
-def version():
-    """Información de versión"""
-    return {
-        "version": "2.0.0",
-        "python_version": os.sys.version,
-        "environment": settings.app_env
-    }
-
+    
+    # Agregar detalles de error en desarrollo
+    if not is_healthy and settings.app_env == "development" and error_details:
+        response["error"] = error_details
+    
+    return response
 # ============================================================
 # STARTUP/SHUTDOWN EVENTS
 # ============================================================
