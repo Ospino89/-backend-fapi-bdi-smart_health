@@ -2,6 +2,7 @@
 # 🏥 SmartHealth - Clinical Query System with RAG
 
 **Desarrolladores**: Ivan Ospino , Gisell Anaya , Jhoan Smith , Jeison Mendez 
+
 **Creado**: 22-Noviembre-2025
 
 ## Descripción   
@@ -155,6 +156,8 @@ uvicorn app.main:app --reload
 ### 7. accerde a el proyecto de FastAPI
 
 API: http://127.0.0.1:8000
+
 Documentación Swagger: http://127.0.0.1:8000/docs
+
 URL de Producción: https://smarthealth-api-926g.onrender.com/docs
 
