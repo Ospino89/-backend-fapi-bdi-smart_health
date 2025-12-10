@@ -1,0 +1,123 @@
+# ==========================================
+# Render Blueprint - SmartHealth (Opción 1)
+# Backend sirve Frontend (Monolito)
+# ==========================================
+
+services:
+  # ==========================================
+  # Base de Datos PostgreSQL
+  # ==========================================
+  - type: pserv
+    name: smarthealth-db
+    env: docker
+    plan: free
+    region: oregon
+    databaseName: neondb
+    databaseUser: neondb_owner
+
+  # ==========================================
+  # API Backend + Frontend (TODO EN UNO)
+  # ==========================================
+  - type: web
+    name: smarthealth-app
+    env: docker
+    region: oregon
+    plan: free
+    
+    # Docker Configuration
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+
+    
+    # Health Check
+    healthCheckPath: /health
+    
+    # Auto-deploy desde main branch
+    branch: main
+    
+    # Environment Variables
+    envVars:
+      # Entorno
+      - key: APP_ENV
+        value: production
+      
+      - key: ENVIRONMENT
+        value: production
+      
+      # Base de Datos
+      - key: DB_HOST
+        fromDatabase:
+          name: smarthealth-db
+          property: host
+      
+      - key: DB_PORT
+        fromDatabase:
+          name: smarthealth-db
+          property: port
+      
+      - key: DB_NAME
+        fromDatabase:
+          name: smarthealth-db
+          property: database
+      
+      - key: DB_USER
+        fromDatabase:
+          name: smarthealth-db
+          property: user
+      
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: smarthealth-db
+          property: password
+      
+      # Seguridad
+      - key: SECRET_KEY
+        generateValue: true
+      
+      - key: JWT_ALGORITHM
+        value: HS256
+      
+      - key: JWT_EXPIRATION_MINUTES
+        value: 30
+      
+      # OpenAI (AGREGAR MANUALMENTE)
+      - key: OPENAI_API_KEY
+        sync: false
+      
+      # LLM
+      - key: LLM_MODEL
+        value: gpt-4o-mini
+      
+      - key: LLM_TEMPERATURE
+        value: "0.1"
+      
+      - key: LLM_MAX_TOKENS
+        value: "2000"
+      
+      - key: LLM_TIMEOUT
+        value: "30"
+      
+      # WebSocket
+      - key: WEBSOCKET_TIMEOUT
+        value: "300"
+      
+      - key: WEBSOCKET_RATE_LIMIT
+        value: "20"
+      
+      - key: WEBSOCKET_MAX_MESSAGE_SIZE
+        value: "10485760"
+      
+      # Logging
+      - key: LOG_LEVEL
+        value: INFO
+      
+      - key: SHOW_SQL_QUERIES
+        value: "false"
+      
+      # CORS (permitir todos en desarrollo)
+      - key: CORS_ORIGINS
+        value: "*"
+      
+      # Servidor
+      - key: WORKERS
+        value: "4"
