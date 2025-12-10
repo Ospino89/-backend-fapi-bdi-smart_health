@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # ===================================================================
 # SMARTHEALTH - .gitignore
 # ===================================================================
@@ -328,3 +329,44 @@ NOTES.md
 *.zip
 *.tar.gz
 *.rar
+=======
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+
+# Virtual Environment
+venv/
+env/
+ENV/
+.venv
+
+# Environment variables
+.env
+.env.local
+
+# Database
+*.db
+*.sqlite3
+
+# Logs
+*.log
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test files
+.pytest_cache/
+.coverage
+htmlcov/
+>>>>>>> 201de2383c865f5944a83960b1f340f1a422255a
+*.pyc

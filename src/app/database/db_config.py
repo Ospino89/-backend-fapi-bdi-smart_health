@@ -43,6 +43,10 @@ if not ENV_PATH.exists():
     print(f"  Archivo .env no encontrado en: {ENV_PATH}")
     print(f"   Crea el archivo .env en la raíz del proyecto")
 else:
+<<<<<<< HEAD
     print(f" Archivo .env encontrado en: {ENV_PATH}")
+=======
+    print(f"✅ Archivo .env encontrado en: {ENV_PATH}")
+>>>>>>> 201de2383c865f5944a83960b1f340f1a422255a
 
 settings = Settings()
