@@ -781,4 +781,27 @@ async def _process_query(
     }
 
     logger.info(f"Query completada exitosamente en {response['metadata']['query_time_ms']}ms")
+    
+    # 8. GUARDAR EN AUDIT LOGS (Historial)
+    try:
+        from app.models.audit_logs import AuditLog
+        from uuid import UUID
+        
+        audit_log = AuditLog(
+            user_id=int(input_data.user_id),
+            session_id=UUID(input_data.session_id),
+            sequence_chat_id=sequence_chat_id,
+            document_type_id=input_data.document_type_id,
+            document_number=sanitized_doc_number,
+            question=input_data.question,
+            response_json=response
+        )
+        db.add(audit_log)
+        db.commit()
+        logger.info(f"Consulta guardada en audit_logs: audit_log_id={audit_log.audit_log_id}")
+    except Exception as e:
+        logger.error(f"Error guardando en audit_logs: {type(e).__name__}: {e}")
+        # No fallar la petición si falla el guardado del log
+        db.rollback()
+    
     return response

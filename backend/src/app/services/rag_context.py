@@ -11,8 +11,8 @@ y los transforma en:
 import tiktoken
 from datetime import date
 from typing import List, Dict, Any
-from src.app.schemas.clinical import PatientInfo, ClinicalRecords
-from src.app.schemas.rag import SimilarChunk
+from app.schemas.clinical import PatientInfo, ClinicalRecords
+from app.schemas.rag import SimilarChunk
 
 def calculate_age(birth_date: date) -> int:
     """Calcula la edad a partir de la fecha de nacimiento."""

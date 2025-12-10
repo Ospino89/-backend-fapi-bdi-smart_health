@@ -15,7 +15,7 @@ sys.path.append(str(root_dir))
 
 from openai import OpenAI
 from sqlalchemy import text
-from src.app.database.database import get_db
+from app.database.database import get_db
 from dotenv import load_dotenv
 
 # Cargar variables de entorno

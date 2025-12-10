@@ -1,0 +1,64 @@
+/* ============================================
+   SmartHealth - Test Styles
+   ============================================ */
+
+#test-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-2xl);
+    font-family: var(--font-sans);
+}
+
+#test-container h1 {
+    font-size: 2rem;
+    margin-bottom: var(--spacing-2xl);
+    color: var(--primary-color);
+    text-align: center;
+}
+
+#test-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--spacing-lg);
+}
+
+.test-result {
+    padding: var(--spacing-lg);
+    border-radius: var(--radius-lg);
+    border: 2px solid var(--border-color);
+}
+
+.test-result.pass {
+    background-color: #D1FAE5;
+    border-color: #6EE7B7;
+}
+
+.test-result.fail {
+    background-color: #FEE2E2;
+    border-color: #FCA5A5;
+}
+
+.test-result h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+}
+
+.test-result.pass h3 {
+    color: #065F46;
+}
+
+.test-result.fail h3 {
+    color: #991B1B;
+}
+
+.test-result p {
+    margin: 0;
+    font-size: 0.875rem;
+}
+
+.test-result.pass p {
+    color: #047857;
+}
+
+.test-result.fail p {
+    color: #7C2D12;
+}

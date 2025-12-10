@@ -3,7 +3,8 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Encontrar la raíz del proyecto (donde está el .env)
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+# Desde backend/src/app/database/db_config.py subimos 4 niveles para llegar a la raíz
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent.parent
 ENV_PATH = BASE_DIR / ".env"
 
 class Settings(BaseSettings):

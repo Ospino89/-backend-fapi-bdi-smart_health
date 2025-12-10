@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SmartHealth</title>
+    
+    <!-- Estilos base -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    <link rel="stylesheet" href="/static/css/chat.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/Logo, Png.png">
+</head>
+<body>
+    <div class="chat-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-small">
+                    <img src="/static/img/Logo, Png.png" alt="SmartHealth" class="logo-img-small">
+                </div>
+                <h2>SmartHealth</h2>
+            </div>
+            
+            <div class="new-chat-section">
+                <button id="newChatBtn" class="btn-new-chat">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 4v12M4 10h12"/>
+                    </svg>
+                    Nueva Consulta
+                </button>
+            </div>
+            
+            <div class="chat-history">
+                <h3>Historial</h3>
+                <div class="chat-history-list">
+                    <div class="empty-history">No hay conversaciones recientes</div>
+                </div>
+            </div>
+        </aside>
+        
+        <!-- Main Chat Area -->
+        <main class="chat-main">
+            <!-- Chat Header -->
+            <header class="chat-header">
+                <div class="chat-title">
+                    <h1>Asistente Médico</h1>
+                    <p class="chat-subtitle">Consulta información clínica de pacientes</p>
+                </div>
+                <button id="userAvatarBtn" class="user-avatar-btn" type="button">
+                    <span id="userAvatarInitials">U</span>
+                </button>
+            </header>
+            
+            <!-- Messages Area -->
+            <div id="chatMessages" class="chat-messages">
+                <div class="welcome-message">
+                    <div class="welcome-icon">
+                        <svg width="60" height="60" viewBox="0 0 50 50" fill="none">
+                            <path d="M25 5C14.5 5 6 13.5 6 24C6 34.5 14.5 43 25 43C35.5 43 44 34.5 44 24C44 13.5 35.5 5 25 5Z" stroke="#4F46E5" stroke-width="2"/>
+                            <path d="M25 15V33M17 24H33" stroke="#4F46E5" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h2>¡Bienvenido!</h2>
+                    <p>Proporciona la información del paciente y tu pregunta para comenzar.</p>
+                </div>
+            </div>
+            
+            <!-- Input Area -->
+            <div class="chat-input-container">
+                <div class="patient-info-form">
+                    <div class="form-row">
+                        <div class="form-group-inline">
+                            <label for="documentType">Tipo de Documento</label>
+                            <select id="documentType" name="documentType">
+                                <option value="1">CC - Cédula de Ciudadanía</option>
+                                <option value="2">TI - Tarjeta de Identidad</option>
+                                <option value="3">CE - Cédula de Extranjería</option>
+                                <option value="4">PA - Pasaporte</option>
+                            </select>
+                        </div>
+                        <div class="form-group-inline flex-grow">
+                            <label for="documentNumber">Número de Documento</label>
+                            <input type="text" id="documentNumber" name="documentNumber" placeholder="Ej: 1234567890" />
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="chat-input-wrapper">
+                    <textarea 
+                        id="chatInput" 
+                        name="chatInput" 
+                        placeholder="Escribe tu pregunta aquí... (Shift + Enter para nueva línea)"
+                        rows="1"
+                    ></textarea>
+                    <button id="sendBtn" class="btn-send" type="button" disabled>
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M18 2L9 11M18 2l-9 9M18 2L2 7l7 4 9-5z"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </main>
+    </div>
+    
+    <!-- Confirmation Modal -->
+    <div id="confirmModalOverlay" class="confirm-modal-overlay">
+        <div class="confirm-modal">
+            <div class="confirm-modal-header">
+                <div class="confirm-modal-icon">
+                    <svg width="32" height="32" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zM10 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm0-4c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1s1 .45 1 1v3c0 .55-.45 1-1 1z"/>
+                    </svg>
+                </div>
+                <h3 id="confirmModalTitle">¿Estás seguro?</h3>
+                <p id="confirmModalMessage">Esta acción no se puede deshacer.</p>
+            </div>
+            <div class="confirm-modal-actions">
+                <button id="confirmModalCancel" class="confirm-btn confirm-btn-secondary" type="button">
+                    Cancelar
+                </button>
+                <button id="confirmModalConfirm" class="confirm-btn confirm-btn-primary" type="button">
+                    Confirmar
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Profile Modal -->
+    <div id="profileModalOverlay" class="profile-modal-overlay">
+        <div class="profile-modal">
+            <button id="closeProfileModal" class="profile-modal-close" type="button">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M15 5L5 15M5 5l10 10"/>
+                </svg>
+            </button>
+            <div class="profile-modal-content">
+                <div class="profile-modal-avatar">
+                    <span id="profileModalInitials">U</span>
+                </div>
+                <div class="profile-modal-info">
+                    <h2 id="profileModalName">Usuario</h2>
+                    <p id="profileModalEmail">usuario@ejemplo.com</p>
+                </div>
+                <div class="profile-modal-actions">
+                    <button id="logoutBtnModal" class="btn-logout-modal" type="button">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M13 7l5 5-5 5M18 12H6"/>
+                        </svg>
+                        Cerrar Sesión
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="/static/js/utils.js"></script>
+    <script src="/static/js/route-protection.js"></script>
+    <script src="/static/js/chat.js"></script>
+</body>
+</html>

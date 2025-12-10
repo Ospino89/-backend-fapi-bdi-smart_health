@@ -3,15 +3,17 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 import time
 from typing import Dict
 import os
+from pathlib import Path
 
-from .routers import auth, user, query, websocket_chat
+from .routers import auth, user, query, websocket_chat, history
 from .database.database import Base, engine
 from .database.db_config import settings
 
@@ -166,6 +168,68 @@ app.include_router(auth.router)
 app.include_router(user.router)
 app.include_router(query.router)
 app.include_router(websocket_chat.router)
+app.include_router(history.router)
+
+# ============================================================
+# SERVIR FRONTEND (Archivos Estáticos)
+# ============================================================
+
+# Obtener la ruta del proyecto (subir 3 niveles desde backend/src/app)
+BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
+FRONTEND_DIR = BASE_DIR / "frontend"
+
+# Servir archivos estáticos (CSS, JS, imágenes)
+if FRONTEND_DIR.exists():
+    static_dir = FRONTEND_DIR / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        logger.info(f"Archivos estáticos montados desde: {static_dir}")
+    
+    # Servir archivos públicos (HTML)
+    public_dir = FRONTEND_DIR / "public"
+    if public_dir.exists():
+        app.mount("/public", StaticFiles(directory=str(public_dir)), name="public")
+        logger.info(f"Archivos públicos montados desde: {public_dir}")
+        
+        # Servir páginas del frontend
+        @app.get("/chat", tags=["Frontend"])
+        async def serve_chat():
+            """Sirve la aplicación de chat"""
+            index_path = public_dir / "index.html"
+            if index_path.exists():
+                return FileResponse(str(index_path))
+            raise StarletteHTTPException(status_code=404, detail="Frontend no encontrado")
+        
+        @app.get("/login", tags=["Frontend"])
+        async def serve_login():
+            """Sirve la página de login"""
+            login_path = public_dir / "login.html"
+            if login_path.exists():
+                return FileResponse(str(login_path))
+            raise StarletteHTTPException(status_code=404, detail="Página de login no encontrada")
+        
+        @app.get("/register", tags=["Frontend"])
+        async def serve_register():
+            """Sirve la página de registro"""
+            register_path = public_dir / "register.html"
+            if register_path.exists():
+                return FileResponse(str(register_path))
+            raise StarletteHTTPException(status_code=404, detail="Página de registro no encontrada")
+        
+        @app.get("/unauthorized", tags=["Frontend"])
+        async def serve_unauthorized():
+            """Sirve la página de contenido no disponible"""
+            unauthorized_path = public_dir / "unauthorized.html"
+            if unauthorized_path.exists():
+                return FileResponse(str(unauthorized_path))
+            raise StarletteHTTPException(status_code=404, detail="Página no encontrada")
+        
+        # Redirigir raíz a /login
+        @app.get("/", tags=["Root"], include_in_schema=False)
+        async def root_redirect():
+            """Redirige a la página de login"""
+            from fastapi.responses import RedirectResponse
+            return RedirectResponse(url="/login")
 
 # ============================================================
 # ENDPOINTS PRINCIPALES

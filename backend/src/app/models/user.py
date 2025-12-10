@@ -1,6 +1,7 @@
 # app/models/user.py
 
 from sqlalchemy import Column, Integer, String, Boolean, DateTime
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from ..database.database import Base
 
@@ -19,6 +20,9 @@ class User(Base):
     is_active = Column(Boolean, default=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relación con audit_logs
+    audit_logs = relationship("AuditLog", back_populates="user")
 
     def __repr__(self):
         return f"<User {self.email}>"

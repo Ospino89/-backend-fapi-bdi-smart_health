@@ -10,31 +10,33 @@
 ## Tabla de Contenidos
 
 1. [Descripción General](#descripción-general)
-2. [Características Principales](#características-principales)
-3. [Arquitectura del Sistema](#arquitectura-del-sistema)
-4. [Requisitos del Sistema](#requisitos-del-sistema)
-5. [Instalación Completa](#instalación-completa)
+2. [Estructura del Proyecto](#estructura-del-proyecto)
+3. [Características Principales](#características-principales)
+4. [Arquitectura del Sistema](#arquitectura-del-sistema)
+5. [Requisitos del Sistema](#requisitos-del-sistema)
+6. [Instalación Completa](#instalación-completa)
    - [5.1 Instalación de PostgreSQL](#51-instalación-de-postgresql)
    - [5.2 Configuración de la Base de Datos](#52-configuración-de-la-base-de-datos)
    - [5.3 Instalación del Backend](#53-instalación-del-backend)
    - [5.4 Configuración de Variables de Entorno](#54-configuración-de-variables-de-entorno)
-6. [Seguridad](#seguridad)
+   - [5.5 Frontend](#55-frontend)
+7. [Seguridad](#seguridad)
    - [6.1 Principios de Seguridad](#61-principios-de-seguridad)
    - [6.2 Autenticación y Autorización](#62-autenticación-y-autorización)
    - [6.3 Protección de Datos](#63-protección-de-datos)
    - [6.4 Rate Limiting](#64-rate-limiting)
    - [6.5 Validación de Inputs](#65-validación-de-inputs)
-7. [Configuración y Uso](#configuración-y-uso)
+8. [Configuración y Uso](#configuración-y-uso)
    - [7.1 Iniciar el Servidor](#71-iniciar-el-servidor)
    - [7.2 Documentación de la API](#72-documentación-de-la-api)
    - [7.3 WebSocket Chat](#73-websocket-chat)
-8. [API Endpoints](#api-endpoints)
-9. [Testing](#testing)
-10. [Troubleshooting Completo](#troubleshooting-completo)
-11. [Despliegue en Producción](#despliegue-en-producción)
-12. [Mantenimiento](#mantenimiento)
-13. [Contribución](#contribución)
-14. [Soporte](#soporte)
+9. [API Endpoints](#api-endpoints)
+10. [Testing](#testing)
+11. [Troubleshooting Completo](#troubleshooting-completo)
+12. [Despliegue en Producción](#despliegue-en-producción)
+13. [Mantenimiento](#mantenimiento)
+14. [Contribución](#contribución)
+15. [Soporte](#soporte)
 
 ---
 
@@ -50,6 +52,29 @@ SmartHealth es un sistema backend desarrollado en **FastAPI** para la consulta i
 - Proporciona chat en tiempo real con streaming de respuestas
 - Implementa autenticación segura con JWT
 - Registra todas las consultas para auditoría
+
+---
+
+## Estructura del Proyecto
+
+El proyecto está organizado en dos directorios principales:
+
+```
+-backend-fapi-bdi-smart_health/
+├── backend/          # Código del backend (FastAPI)
+│   ├── src/         # Código fuente
+│   ├── start_server.py
+│   └── requirements.txt
+├── frontend/         # Código del frontend (HTML/CSS/JS)
+│   ├── public/      # Archivos HTML
+│   ├── static/      # CSS, JS, imágenes
+│   └── scripts/     # Scripts de utilidad
+├── docs/            # Documentación general
+├── content/         # Datos y scripts de base de datos
+└── .env             # Variables de entorno (en la raíz)
+```
+
+**Nota importante**: El archivo `.env` debe estar en la **raíz del proyecto**, no dentro de `backend/` o `frontend/`.
 
 ---
 
@@ -506,10 +531,11 @@ CREATE EXTENSION vector;
 
 ### 5.3 Instalación del Backend
 
-**Paso 1: Navegar a la Raíz del Proyecto**
+**Paso 1: Navegar al Directorio Backend**
 
 ```bash
 cd ../..  # Desde pipelines/02-insert-data volver a raíz
+cd backend  # Entrar al directorio backend
 ```
 
 **Paso 2: Crear Entorno Virtual para el Backend**
@@ -556,7 +582,7 @@ pip list | grep fastapi
 
 **Paso 1: Crear Archivo .env**
 
-En la raíz del proyecto, crear archivo `.env`:
+En la **raíz del proyecto** (no en backend/), crear archivo `.env`:
 
 ```bash
 # Windows:
@@ -666,6 +692,218 @@ cat .gitignore | grep .env
 
 ---
 
+### 5.5 Frontend
+
+El frontend de SmartHealth es una aplicación web desarrollada con **HTML5, CSS3 y JavaScript vanilla** que se comunica con el backend a través de **API REST** y **WebSocket**.
+
+#### Estructura del Frontend
+
+```
+frontend/
+├── public/          # Archivos HTML públicos
+│   ├── index.html   # Aplicación principal de chat médico
+│   ├── login.html   # Página de inicio de sesión
+│   ├── register.html # Página de registro
+│   ├── test.html    # Página de prueba de WebSocket
+│   └── unauthorized.html # Página de acceso no autorizado
+├── static/          # Archivos estáticos
+│   ├── css/        # Hojas de estilo
+│   │   ├── base.css      # Estilos base
+│   │   ├── chat.css      # Estilos del chat
+│   │   ├── animations.css # Animaciones
+│   │   └── test.css      # Estilos de prueba
+│   ├── js/         # Scripts JavaScript
+│   │   ├── utils.js      # Utilidades (API, Auth, Storage)
+│   │   ├── auth.js       # Lógica de autenticación
+│   │   ├── chat.js       # Lógica del chat
+│   │   ├── route-protection.js # Protección de rutas
+│   │   └── test.js       # Scripts de prueba
+│   └── img/        # Imágenes y recursos
+│       └── Logo, Png.png
+├── docs/           # Documentación del frontend
+│   └── websocket.md # Documentación del protocolo WebSocket
+└── scripts/        # Scripts de utilidad
+    ├── setup_websocket.bat # Script de configuración (Windows)
+    └── test_websocket.py   # Script de prueba de WebSocket
+```
+
+#### Características del Frontend
+
+- **Interfaz de Usuario Moderna**: Diseño responsive y accesible
+- **Autenticación JWT**: Login y registro con tokens seguros
+- **Chat en Tiempo Real**: Comunicación WebSocket con streaming
+- **Protección de Rutas**: Redirección automática según estado de autenticación
+- **Gestión de Estado**: Almacenamiento local de tokens y datos de usuario
+- **Validación de Formularios**: Validación en cliente antes de enviar al servidor
+
+#### Variables de Entorno
+
+**IMPORTANTE**: El frontend **NO requiere variables de entorno**. Se conecta automáticamente al backend usando `window.location.origin`, lo que significa que:
+
+- En desarrollo: Se conecta a `http://localhost:8000` (o el puerto donde corre el backend)
+- En producción: Se conecta automáticamente al dominio donde está desplegado
+
+El frontend detecta automáticamente la URL del servidor desde la cual se sirve, por lo que no necesita configuración adicional.
+
+#### Conexión con el Backend
+
+El frontend se conecta al backend de las siguientes maneras:
+
+**1. API REST (HTTP/HTTPS)**
+
+```javascript
+// El frontend usa fetch API para comunicarse con el backend
+const API = {
+    baseURL: window.location.origin, // Se ajusta automáticamente
+    
+    async request(endpoint, options = {}) {
+        // Agrega token JWT automáticamente si existe
+        const token = Auth.getToken();
+        if (token) {
+            config.headers['Authorization'] = `Bearer ${token}`;
+        }
+        
+        return fetch(`${this.baseURL}${endpoint}`, config);
+    }
+};
+```
+
+**Endpoints utilizados:**
+- `POST /auth/register` - Registro de usuarios
+- `POST /auth/login` - Inicio de sesión
+- `GET /users/me` - Obtener información del usuario actual
+- `GET /history` - Obtener historial de consultas
+- `POST /query` - Realizar consultas clínicas
+
+**2. WebSocket (WS/WSS)**
+
+```javascript
+// Conexión WebSocket para chat en tiempo real
+const ws = new WebSocket(
+    `ws://${window.location.host}/ws/chat?token=${token}`
+);
+```
+
+**WebSocket utilizado para:**
+- Chat en tiempo real con streaming de respuestas
+- Recepción de tokens token por token del LLM
+- Notificaciones en tiempo real
+
+#### Conexión con la Base de Datos
+
+**El frontend NO se conecta directamente a la base de datos**. Toda la comunicación con PostgreSQL se realiza a través del backend:
+
+```
+Frontend (JavaScript)
+    ↓ HTTP/WebSocket
+Backend (FastAPI)
+    ↓ SQLAlchemy
+PostgreSQL + pgvector
+```
+
+**Flujo de datos:**
+1. Usuario interactúa con el frontend (formulario, chat, etc.)
+2. Frontend envía petición HTTP/WebSocket al backend
+3. Backend procesa la petición y consulta la base de datos
+4. Backend retorna los datos al frontend
+5. Frontend actualiza la interfaz de usuario
+
+**Ventajas de esta arquitectura:**
+- ✅ Seguridad: La base de datos no está expuesta directamente
+- ✅ Validación: El backend valida todos los datos antes de guardar
+- ✅ Autenticación: El backend verifica permisos antes de cada operación
+- ✅ Escalabilidad: Múltiples frontends pueden usar el mismo backend
+
+#### Almacenamiento Local
+
+El frontend utiliza **localStorage** del navegador para almacenar:
+
+- **JWT Token**: Token de autenticación (se renueva automáticamente)
+- **Datos de Usuario**: Información del usuario logueado (nombre, email, etc.)
+
+```javascript
+// Ejemplo de almacenamiento
+localStorage.setItem('jwt_token', token);
+localStorage.setItem('user_data', JSON.stringify(user));
+```
+
+**Nota de Seguridad**: Los tokens JWT tienen expiración (30 minutos por defecto). El frontend maneja automáticamente la renovación cuando es necesario.
+
+#### Iniciar el Frontend
+
+El frontend se sirve automáticamente por el backend FastAPI. No requiere servidor separado:
+
+**Opción 1: Servido por el Backend (Recomendado)**
+
+```bash
+# El backend sirve automáticamente el frontend
+cd backend
+python start_server.py
+
+# Acceder a:
+# - http://localhost:8000/login (Login)
+# - http://localhost:8000/chat (Chat - requiere autenticación)
+```
+
+**Opción 2: Servidor HTTP Simple (Solo para desarrollo)**
+
+Si necesitas un servidor separado para desarrollo:
+
+```bash
+cd frontend
+python server.py
+
+# Acceder a: http://localhost:3000
+```
+
+**⚠️ Importante**: Si usas el servidor separado, asegúrate de que el backend esté corriendo en `http://localhost:8000` o actualiza las URLs en el código.
+
+#### Páginas Disponibles
+
+- **`/login`** - Página de inicio de sesión
+- **`/register`** - Página de registro de nuevos usuarios
+- **`/chat`** - Aplicación principal de chat médico (requiere autenticación)
+- **`/unauthorized`** - Página mostrada cuando no hay autenticación
+- **`/test`** - Página de prueba de WebSocket (solo desarrollo)
+
+#### Tecnologías Utilizadas
+
+- **HTML5**: Estructura semántica
+- **CSS3**: Estilos modernos con animaciones
+- **JavaScript (Vanilla)**: Sin frameworks, JavaScript puro
+- **Fetch API**: Para peticiones HTTP
+- **WebSocket API**: Para comunicación en tiempo real
+- **LocalStorage API**: Para almacenamiento local
+
+#### Desarrollo del Frontend
+
+**Estructura de archivos JavaScript:**
+
+- `utils.js`: Funciones de utilidad (API, Auth, Storage, Validators, UI)
+- `auth.js`: Lógica de autenticación (login, registro, logout)
+- `chat.js`: Lógica del chat (WebSocket, mensajes, historial)
+- `route-protection.js`: Protección de rutas y redirecciones
+
+**Flujo de autenticación:**
+
+1. Usuario ingresa credenciales en `/login`
+2. Frontend envía `POST /auth/login` al backend
+3. Backend valida y retorna JWT token
+4. Frontend guarda token en localStorage
+5. Frontend redirige a `/chat`
+6. Todas las peticiones incluyen `Authorization: Bearer <token>`
+
+**Flujo del chat:**
+
+1. Usuario escribe pregunta en el chat
+2. Frontend conecta WebSocket con token JWT
+3. Frontend envía pregunta al backend vía WebSocket
+4. Backend procesa con RAG y LLM
+5. Backend envía respuesta token por token (streaming)
+6. Frontend muestra respuesta en tiempo real
+
+---
+
 ## Seguridad
 
 ### 6.1 Principios de Seguridad
@@ -715,7 +953,7 @@ Las contraseñas DEBEN cumplir:
 localStorage.setItem('token', token);
 
 // Incluir en requests
-fetch('http://localhost:8088/users/me', {
+fetch('http://localhost:8000/users/me', {
   headers: {
     'Authorization': `Bearer ${token}`
   }
@@ -897,10 +1135,13 @@ clean_input = sanitize_input(user_input)
 
 ```bash
 # Asegurarse de tener el entorno virtual activado
-cd src
+cd backend
 
-# Iniciar con auto-reload
-uvicorn app.main:app --reload --port 8088
+# Opción 1: Usar el script de inicio
+python start_server.py
+
+# Opción 2: Iniciar directamente con uvicorn
+uvicorn src.app.main:app --reload --port 8000
 
 # Salida esperada:
 # INFO:     Uvicorn running on http://127.0.0.1:8088
@@ -915,18 +1156,18 @@ uvicorn app.main:app --reload --port 8088
 #### Modo Producción
 
 ```bash
-cd src
+cd backend
 
 # Con Gunicorn (recomendado)
-gunicorn app.main:app \
+gunicorn src.app.main:app \
   -w 4 \
   -k uvicorn.workers.UvicornWorker \
-  --bind 0.0.0.0:8088 \
+  --bind 0.0.0.0:8000 \
   --access-logfile logs/access.log \
   --error-logfile logs/error.log
 
 # Con Uvicorn (alternativa)
-uvicorn app.main:app --host 0.0.0.0 --port 8088 --workers 4
+uvicorn src.app.main:app --host 0.0.0.0 --port 8000 --workers 4
 ```
 
 **Parámetros importantes**:
@@ -939,7 +1180,7 @@ uvicorn app.main:app --host 0.0.0.0 --port 8088 --workers 4
 
 #### Swagger UI (Desarrollo)
 
-URL: http://localhost:8088/docs
+URL: http://localhost:8000/docs
 
 Características:
 - Interfaz interactiva
@@ -949,7 +1190,7 @@ Características:
 
 #### ReDoc (Desarrollo)
 
-URL: http://localhost:8088/redoc
+URL: http://localhost:8000/redoc
 
 Características:
 - Documentación más limpia
@@ -971,12 +1212,12 @@ Características:
 
 #### Conectar al WebSocket
 
-**URL**: `ws://localhost:8088/ws/chat?token=<JWT_TOKEN>`
+**URL**: `ws://localhost:8000/ws/chat?token=<JWT_TOKEN>`
 
 **Paso 1: Obtener Token**
 
 ```bash
-curl -X POST "http://localhost:8088/auth/login" \
+curl -X POST "http://localhost:8000/auth/login" \
   -H "Content-Type: application/json" \
   -d '{
     "email": "usuario@ejemplo.com",
