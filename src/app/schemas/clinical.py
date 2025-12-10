@@ -77,7 +77,7 @@ class PrescriptionDTO(BaseModel):
     frequency: Optional[str] = None
     duration: Optional[str] = None
     instruction: Optional[str] = None
-    prescription_date: Optional[date] = None
+    prescription_date: Optional[datetime] = None
     alert_generated: Optional[bool] = False
     
     # âœ… Campos del medicamento (agregados mediante JOIN)

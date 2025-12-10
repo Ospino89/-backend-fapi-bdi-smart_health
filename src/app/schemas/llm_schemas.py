@@ -8,8 +8,10 @@ class LLMResponse(BaseModel):
     model_used: str = Field(..., description="Modelo utilizado")
     tokens_used: int = Field(default=0, description="Tokens consumidos")
     
-    # Configuración para evitar el warning de pydantic
-    model_config = ConfigDict(protected_namespaces=())
+    # ✅ Configuración corregida para evitar warnings
+    model_config = ConfigDict(
+        protected_namespaces=()  # Permite campos que empiecen con "model_"
+    )
 
 class LLMError(Exception):
     """Excepción personalizada para errores del LLM"""

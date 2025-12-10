@@ -3,7 +3,6 @@ from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 # Encontrar la raíz del proyecto (donde está el .env)
-# Desde db_config.py -> database -> app -> src -> raíz
 BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
 ENV_PATH = BASE_DIR / ".env"
 
@@ -26,11 +25,12 @@ class Settings(BaseSettings):
     llm_max_tokens: int = 500
     llm_timeout: int = 30
     
+    # Configuración de Pydantic
     model_config = SettingsConfigDict(
-        # Usar la ruta absoluta al .env
         env_file=str(ENV_PATH) if ENV_PATH.exists() else None,
         env_file_encoding="utf-8",
-        case_sensitive=False
+        case_sensitive=False,
+        extra='ignore'  # ✅ CRÍTICO: Ignora campos extra del .env
     )
     
     @property
@@ -40,8 +40,9 @@ class Settings(BaseSettings):
 
 # Mostrar advertencia si no encuentra el .env
 if not ENV_PATH.exists():
-    print(f"⚠️  Archivo .env no encontrado en: {ENV_PATH}")
+    print(f"  Archivo .env no encontrado en: {ENV_PATH}")
     print(f"   Crea el archivo .env en la raíz del proyecto")
+else:
+    print(f" Archivo .env encontrado en: {ENV_PATH}")
 
 settings = Settings()
-
