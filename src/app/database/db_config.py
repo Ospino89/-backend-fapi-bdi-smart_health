@@ -30,7 +30,7 @@ class Settings(BaseSettings):
         env_file=str(ENV_PATH) if ENV_PATH.exists() else None,
         env_file_encoding="utf-8",
         case_sensitive=False,
-        extra='ignore'  # ✅ CRÍTICO: Ignora campos extra del .env
+        extra='ignore'  #  CRÍTICO: Ignora campos extra del .env
     )
     
     @property

@@ -18,10 +18,10 @@ class Patient(Base):
     email = Column(String(100), unique=True)
     document_type_id = Column(Integer, nullable=False)
     document_number = Column(String(50), nullable=False)
-    registration_date = Column(TIMESTAMP, default=datetime.utcnow)  # ✅ TIMESTAMP no DATE
+    registration_date = Column(TIMESTAMP, default=datetime.utcnow)  #  TIMESTAMP no DATE
     active = Column(Boolean, default=True)
     blood_type = Column(String(5))
 
-    # ✅ Relationships usando strings para evitar imports circulares
+    #  Relationships usando strings para evitar imports circulares
     # appointments = relationship("Appointment", back_populates="patient")
     # medical_records = relationship("MedicalRecord", back_populates="patient")

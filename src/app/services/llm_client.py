@@ -51,11 +51,11 @@ class LLMClient:
                 "tokens_used": response.usage.total_tokens
             }
             
-            logger.info(f"✅ LLM generó respuesta. Tokens usados: {result['tokens_used']}")
+            logger.info(f" LLM generó respuesta. Tokens usados: {result['tokens_used']}")
             return result
             
         except Exception as e:
-            logger.error(f"❌ Error en LLM: {str(e)}")
+            logger.error(f" Error en LLM: {str(e)}")
             from app.schemas.llm_schemas import LLMError
             raise LLMError(
                 message="Error al generar respuesta del LLM",
@@ -90,10 +90,10 @@ async def get_embedding(text: str) -> List[float]:
         )
         
         embedding = response.data[0].embedding
-        logger.info(f"🔢 Embedding generado: {len(embedding)} dimensiones")
+        logger.info(f" Embedding generado: {len(embedding)} dimensiones")
         
         return embedding
         
     except Exception as e:
-        logger.error(f"❌ Error generando embedding: {str(e)}")
+        logger.error(f" Error generando embedding: {str(e)}")
         raise Exception(f"Error al generar embedding: {str(e)}")

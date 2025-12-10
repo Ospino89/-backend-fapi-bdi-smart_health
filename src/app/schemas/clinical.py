@@ -18,7 +18,7 @@ class PatientInfo(BaseModel):
     email: Optional[str] = None
     document_type_id: int
     document_number: str
-    registration_date: Optional[datetime] = None  # ✅ Cambiar de date a datetime
+    registration_date: Optional[datetime] = None  #  Cambiar de date a datetime
     active: bool = True
     blood_type: Optional[str] = None
 
@@ -62,7 +62,7 @@ class MedicalRecordDTO(BaseModel):
     registration_datetime: datetime
     record_type: Optional[str] = None
     summary_text: Optional[str] = None
-    vital_signs: Optional[Union[dict, str]] = None  # ✅ Esto debe estar exactamente así
+    vital_signs: Optional[Union[dict, str]] = None  #  Esto debe estar exactamente así
 
     class Config:
         from_attributes = True

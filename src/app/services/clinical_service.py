@@ -54,7 +54,7 @@ def get_patient_by_document(
     if not patient:
         return None
 
-    # ✅ Mapear manualmente para manejar registration_date correctamente
+    #  Mapear manualmente para manejar registration_date correctamente
     return PatientInfo(
         patient_id=patient.patient_id,
         first_name=patient.first_name,
@@ -222,7 +222,7 @@ def get_diagnoses_by_patient(db: Session, patient_id: int) -> List[DiagnosisDTO]
     Obtiene todos los diagnósticos de un paciente con la fecha del registro médico.
     """
     try:
-        # ✅ Query con SQL directo para obtener la fecha del medical_record
+        #  Query con SQL directo para obtener la fecha del medical_record
         query = text("""
             SELECT 
                 rd.record_diagnosis_id,
@@ -254,7 +254,7 @@ def get_diagnoses_by_patient(db: Session, patient_id: int) -> List[DiagnosisDTO]
                 'description': row.description,
                 'diagnosis_type': row.diagnosis_type,
                 'note': row.note,
-                # ✅ Fecha del diagnóstico (del medical_record)
+                #  Fecha del diagnóstico (del medical_record)
                 'diagnosis_date': row.diagnosis_date,
             }
             diagnoses.append(DiagnosisDTO(**diag_dict))

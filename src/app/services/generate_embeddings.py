@@ -41,13 +41,13 @@ def generate_embedding(text: str) -> list:
         )
         return response.data[0].embedding
     except Exception as e:
-        print(f"❌ Error generando embedding: {e}")
+        print(f" Error generando embedding: {e}")
         return None
 
 def update_medical_records_embeddings(limit: int = 100):
     """Genera embeddings para medical_records.summary_text"""
     print("\n" + "="*60)
-    print("📋 ACTUALIZANDO MEDICAL RECORDS")
+    print(" ACTUALIZANDO MEDICAL RECORDS")
     print("="*60)
     
     db = next(get_db())
@@ -63,7 +63,7 @@ def update_medical_records_embeddings(limit: int = 100):
         
         records = result.fetchall()
         total = len(records)
-        print(f"📊 Encontrados {total} registros sin embedding\n")
+        print(f" Encontrados {total} registros sin embedding\n")
         
         for i, record in enumerate(records, 1):
             record_id = record[0]
@@ -77,12 +77,12 @@ def update_medical_records_embeddings(limit: int = 100):
                     WHERE medical_record_id = :record_id
                 """), {"embedding": embedding, "record_id": record_id})
                 db.commit()
-                print(f"✅ [{i}/{total}] Medical record {record_id}: {summary_text[:50]}...")
+                print(f" [{i}/{total}] Medical record {record_id}: {summary_text[:50]}...")
         
-        print(f"\n🎉 Completado: {total} registros médicos actualizados")
+        print(f"\n Completado: {total} registros médicos actualizados")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()
@@ -90,7 +90,7 @@ def update_medical_records_embeddings(limit: int = 100):
 def update_patients_embeddings(limit: int = 100):
     """Genera embeddings para nombres completos de pacientes"""
     print("\n" + "="*60)
-    print("👥 ACTUALIZANDO PATIENTS")
+    print(" ACTUALIZANDO PATIENTS")
     print("="*60)
     
     db = next(get_db())
@@ -105,7 +105,7 @@ def update_patients_embeddings(limit: int = 100):
         
         records = result.fetchall()
         total = len(records)
-        print(f"📊 Encontrados {total} pacientes sin embedding\n")
+        print(f" Encontrados {total} pacientes sin embedding\n")
         
         for i, record in enumerate(records, 1):
             patient_id = record[0]
@@ -123,12 +123,12 @@ def update_patients_embeddings(limit: int = 100):
                     WHERE patient_id = :patient_id
                 """), {"embedding": embedding, "patient_id": patient_id})
                 db.commit()
-                print(f"✅ [{i}/{total}] Patient {patient_id}: {full_name}")
+                print(f" [{i}/{total}] Patient {patient_id}: {full_name}")
         
-        print(f"\n🎉 Completado: {total} pacientes actualizados")
+        print(f"\n Completado: {total} pacientes actualizados")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()
@@ -136,7 +136,7 @@ def update_patients_embeddings(limit: int = 100):
 def update_doctors_embeddings(limit: int = 100):
     """Genera embeddings para nombres de doctores"""
     print("\n" + "="*60)
-    print("👨‍⚕️ ACTUALIZANDO DOCTORS")
+    print("‍ ACTUALIZANDO DOCTORS")
     print("="*60)
     
     db = next(get_db())
@@ -151,7 +151,7 @@ def update_doctors_embeddings(limit: int = 100):
         
         records = result.fetchall()
         total = len(records)
-        print(f"📊 Encontrados {total} doctores sin embedding\n")
+        print(f" Encontrados {total} doctores sin embedding\n")
         
         for i, record in enumerate(records, 1):
             doctor_id = record[0]
@@ -167,12 +167,12 @@ def update_doctors_embeddings(limit: int = 100):
                     WHERE doctor_id = :doctor_id
                 """), {"embedding": embedding, "doctor_id": doctor_id})
                 db.commit()
-                print(f"✅ [{i}/{total}] Doctor {doctor_id}: {full_name}")
+                print(f" [{i}/{total}] Doctor {doctor_id}: {full_name}")
         
-        print(f"\n🎉 Completado: {total} doctores actualizados")
+        print(f"\n Completado: {total} doctores actualizados")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()
@@ -180,7 +180,7 @@ def update_doctors_embeddings(limit: int = 100):
 def update_appointments_embeddings(limit: int = 100):
     """Genera embeddings para motivos de citas"""
     print("\n" + "="*60)
-    print("📅 ACTUALIZANDO APPOINTMENTS")
+    print(" ACTUALIZANDO APPOINTMENTS")
     print("="*60)
     
     db = next(get_db())
@@ -196,7 +196,7 @@ def update_appointments_embeddings(limit: int = 100):
         
         records = result.fetchall()
         total = len(records)
-        print(f"📊 Encontrados {total} citas sin embedding\n")
+        print(f" Encontrados {total} citas sin embedding\n")
         
         for i, record in enumerate(records, 1):
             appointment_id = record[0]
@@ -210,12 +210,12 @@ def update_appointments_embeddings(limit: int = 100):
                     WHERE appointment_id = :appointment_id
                 """), {"embedding": embedding, "appointment_id": appointment_id})
                 db.commit()
-                print(f"✅ [{i}/{total}] Appointment {appointment_id}: {reason[:50]}...")
+                print(f" [{i}/{total}] Appointment {appointment_id}: {reason[:50]}...")
         
-        print(f"\n🎉 Completado: {total} citas actualizadas")
+        print(f"\n Completado: {total} citas actualizadas")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()
@@ -223,7 +223,7 @@ def update_appointments_embeddings(limit: int = 100):
 def update_diagnoses_embeddings(limit: int = 100):
     """Genera embeddings para descripciones de diagnósticos"""
     print("\n" + "="*60)
-    print("🩺 ACTUALIZANDO DIAGNOSES")
+    print(" ACTUALIZANDO DIAGNOSES")
     print("="*60)
     
     db = next(get_db())
@@ -238,7 +238,7 @@ def update_diagnoses_embeddings(limit: int = 100):
         
         records = result.fetchall()
         total = len(records)
-        print(f"📊 Encontrados {total} diagnósticos sin embedding\n")
+        print(f" Encontrados {total} diagnósticos sin embedding\n")
         
         for i, record in enumerate(records, 1):
             diagnosis_id = record[0]
@@ -252,12 +252,12 @@ def update_diagnoses_embeddings(limit: int = 100):
                     WHERE diagnosis_id = :diagnosis_id
                 """), {"embedding": embedding, "diagnosis_id": diagnosis_id})
                 db.commit()
-                print(f"✅ [{i}/{total}] Diagnosis {diagnosis_id}: {description[:50]}...")
+                print(f" [{i}/{total}] Diagnosis {diagnosis_id}: {description[:50]}...")
         
-        print(f"\n🎉 Completado: {total} diagnósticos actualizados")
+        print(f"\n Completado: {total} diagnósticos actualizados")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()
@@ -265,7 +265,7 @@ def update_diagnoses_embeddings(limit: int = 100):
 def update_medications_embeddings(limit: int = 100):
     """Genera embeddings para medicamentos"""
     print("\n" + "="*60)
-    print("💊 ACTUALIZANDO MEDICATIONS")
+    print(" ACTUALIZANDO MEDICATIONS")
     print("="*60)
     
     db = next(get_db())
@@ -280,7 +280,7 @@ def update_medications_embeddings(limit: int = 100):
         
         records = result.fetchall()
         total = len(records)
-        print(f"📊 Encontrados {total} medicamentos sin embedding\n")
+        print(f" Encontrados {total} medicamentos sin embedding\n")
         
         for i, record in enumerate(records, 1):
             med_id = record[0]
@@ -297,12 +297,12 @@ def update_medications_embeddings(limit: int = 100):
                     WHERE medication_id = :med_id
                 """), {"embedding": embedding, "med_id": med_id})
                 db.commit()
-                print(f"✅ [{i}/{total}] Medication {med_id}: {commercial_name}")
+                print(f" [{i}/{total}] Medication {med_id}: {commercial_name}")
         
-        print(f"\n🎉 Completado: {total} medicamentos actualizados")
+        print(f"\n Completado: {total} medicamentos actualizados")
         
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f" Error: {e}")
         db.rollback()
     finally:
         db.close()
@@ -315,13 +315,13 @@ def generate_all_embeddings(limit: int = 100):
         limit: Número máximo de registros a procesar por tabla
     """
     print("\n" + "="*60)
-    print("🚀 INICIANDO GENERACIÓN DE EMBEDDINGS")
+    print(" INICIANDO GENERACIÓN DE EMBEDDINGS")
     print("="*60)
-    print(f"📌 Límite por tabla: {limit} registros")
-    print(f"🔑 OpenAI API Key: {'✅ Configurada' if os.getenv('OPENAI_API_KEY') else '❌ NO configurada'}")
+    print(f" Límite por tabla: {limit} registros")
+    print(f" OpenAI API Key: {' Configurada' if os.getenv('OPENAI_API_KEY') else ' NO configurada'}")
     
     if not os.getenv('OPENAI_API_KEY'):
-        print("\n❌ ERROR: OPENAI_API_KEY no está configurada en .env")
+        print("\n ERROR: OPENAI_API_KEY no está configurada en .env")
         return
     
     try:
@@ -334,11 +334,11 @@ def generate_all_embeddings(limit: int = 100):
         update_medications_embeddings(limit)
         
         print("\n" + "="*60)
-        print("✅ PROCESO COMPLETADO EXITOSAMENTE")
+        print(" PROCESO COMPLETADO EXITOSAMENTE")
         print("="*60)
         
     except Exception as e:
-        print(f"\n❌ Error general: {e}")
+        print(f"\n Error general: {e}")
 
 if __name__ == "__main__":
     # Ejecutar con límite de 100 registros por tabla

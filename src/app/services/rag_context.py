@@ -52,7 +52,7 @@ def build_context(
             time_str = f" a las {appt.start_time}" if appt.start_time else ""
             reason_str = f": {appt.reason}" if appt.reason else ""
             
-            # ✅ Agregar información del doctor si está disponible
+            #  Agregar información del doctor si está disponible
             doctor_info = ""
             if appt.doctor_name:
                 doctor_info = f" con {appt.doctor_name}"
@@ -85,7 +85,7 @@ def build_context(
             parts.append(f"[Relevancia: {chunk.relevance_score:.2f}] {chunk.chunk_text}")
             date_str = f" ({chunk.date.strftime('%Y-%m-%d')})" if chunk.date else ""
             
-            # ✅ Agregar info del doctor si es appointment
+            #  Agregar info del doctor si es appointment
             doctor_info = ""
             if chunk.source_type == "appointment" and chunk.doctor_name:
                 doctor_info = f", Doctor: {chunk.doctor_name}"
@@ -127,7 +127,7 @@ def build_sources(
             "text_snippet": chunk.chunk_text[:250]
         }
         
-        # ✅ Si es appointment, agregar info del doctor
+        #  Si es appointment, agregar info del doctor
         if chunk.source_type == "appointment":
             if chunk.doctor_name or chunk.specialty_name:
                 doctor_info = {}
@@ -155,7 +155,7 @@ def build_sources(
             "relevance_score": 0.98  # Alta relevancia para datos directos
         }
         
-        # ✅ Agregar info del doctor
+        #  Agregar info del doctor
         if appt.doctor_name or appt.specialty_name:
             doctor_info = {}
             if appt.doctor_name:

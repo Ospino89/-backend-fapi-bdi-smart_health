@@ -38,7 +38,7 @@ app = FastAPI(
     docs_url="/docs" if settings.app_env == "development" else None,
     redoc_url="/redoc" if settings.app_env == "development" else None,
     openapi_url="/openapi.json" if settings.app_env == "development" else None,
-    # ✅ URLs alternativas para los assets de Swagger
+    #  URLs alternativas para los assets de Swagger
     swagger_ui_parameters={
         "syntaxHighlight.theme": "monokai",
         "tryItOutEnabled": True

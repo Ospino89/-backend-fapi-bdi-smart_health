@@ -8,7 +8,7 @@ class LLMResponse(BaseModel):
     model_used: str = Field(..., description="Modelo utilizado")
     tokens_used: int = Field(default=0, description="Tokens consumidos")
     
-    # ✅ Configuración corregida para evitar warnings
+    #  Configuración corregida para evitar warnings
     model_config = ConfigDict(
         protected_namespaces=()  # Permite campos que empiecen con "model_"
     )
