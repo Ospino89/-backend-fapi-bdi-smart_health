@@ -11,7 +11,7 @@ import time
 import os
 from pathlib import Path
 
-from .routers import auth, user, query, websocket_chat, history, catalog
+from .routers import auth, user, query, websocket_chat, history
 from .database.database import Base, engine
 from .database.db_config import settings
 
@@ -147,7 +147,6 @@ app.include_router(user.router)
 app.include_router(query.router)
 app.include_router(websocket_chat.router)
 app.include_router(history.router)
-app.include_router(catalog.router)
 
 # ============================================================
 # DETECTAR Y CONFIGURAR FRONTEND
