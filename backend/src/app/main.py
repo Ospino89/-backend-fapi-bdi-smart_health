@@ -3,7 +3,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.trustedhost import TrustedHostMiddleware
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -228,7 +228,6 @@ if FRONTEND_DIR.exists():
         @app.get("/", tags=["Root"], include_in_schema=False)
         async def root_redirect():
             """Redirige a la página de login"""
-            from fastapi.responses import RedirectResponse
             return RedirectResponse(url="/login")
 
 # ============================================================
