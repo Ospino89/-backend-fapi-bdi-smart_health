@@ -49,11 +49,11 @@ RUN groupadd -r appuser && \
     mkdir -p /app && \
     chown -R appuser:appuser /app
 
-# ✅ Copiar código backend (solo src desde el contexto backend/)
-COPY --chown=appuser:appuser ./src /app/src
+#  Copiar código backend (solo src desde el contexto backend/)
+COPY --chown=appuser:appuser /src /app/src
 
-# ✅ Copiar frontend desde la raíz del proyecto
-COPY --chown=appuser:appuser ../frontend /app/frontend
+# Copiar frontend desde la raíz del proyecto
+COPY --chown=appuser:appuser /frontend /app/frontend
 
 # Variables de entorno
 ENV PYTHONPATH=/app/src
