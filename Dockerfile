@@ -1,7 +1,7 @@
 # ==========================================
 # Imagen base para producción en Render
 # ==========================================
-FROM python:3.11-slim as base
+FROM python:3.11-slim AS base
 
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
@@ -13,7 +13,7 @@ WORKDIR /app
 # ==========================================
 # Stage 1: Instalar dependencias
 # ==========================================
-FROM base as dependencies
+FROM base AS dependencies
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-
+# Copiar requirements.txt
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
@@ -31,7 +31,7 @@ RUN pip install --upgrade pip && \
 # ==========================================
 # Stage 2: Imagen final
 # ==========================================
-FROM base as final
+FROM base AS final
 
 # Copiar dependencias instaladas
 COPY --from=dependencies /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
@@ -49,8 +49,10 @@ RUN groupadd -r appuser && \
     mkdir -p /app && \
     chown -R appuser:appuser /app
 
-COPY --chown=appuser:appuser src /app/src
+# Copiar código del backend
+COPY --chown=appuser:appuser backend/src /app/src
 
+# Copiar frontend
 COPY --chown=appuser:appuser frontend /app/frontend
 
 # Variables de entorno
@@ -66,13 +68,5 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 # Exponer puerto
 EXPOSE ${PORT:-10000}
 
-# Comando con Gunicorn + Uvicorn workers
-CMD gunicorn app.main:app \
-    --workers ${WORKERS:-4} \
-    --worker-class uvicorn.workers.UvicornWorker \
-    --bind 0.0.0.0:${PORT:-10000} \
-    --timeout 120 \
-    --graceful-timeout 30 \
-    --access-logfile - \
-    --error-logfile - \
-    --log-level info
+# Comando con Gunicorn + Uvicorn workers (formato JSON para evitar warnings)
+CMD ["sh", "-c", "gunicorn app.main:app --workers ${WORKERS:-4} --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:${PORT:-10000} --timeout 120 --graceful-timeout 30 --access-logfile - --error-logfile - --log-level info"]

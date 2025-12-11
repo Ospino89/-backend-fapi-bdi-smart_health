@@ -24,12 +24,13 @@ services:
     region: oregon
     plan: free
     
-    # Docker Configuration
-    dockerfilePath: ./src/Dockerfile
+
+  
+    dockerfilePath: ./Dockerfile
     dockerContext: .
 
     
-    # Health Check
+
     healthCheckPath: /health
     
     # Auto-deploy desde main branch
