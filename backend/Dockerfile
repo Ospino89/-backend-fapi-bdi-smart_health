@@ -55,7 +55,7 @@ COPY --chown=appuser:appuser ./backend/src /app/src
 COPY --chown=appuser:appuser ./frontend /app/frontend
 
 # Variables de entorno
-ENV PYTHONPATH=/app
+ENV PYTHONPATH=/app/src
 
 # Cambiar a usuario no-root
 USER appuser
@@ -68,7 +68,7 @@ HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
 EXPOSE ${PORT:-10000}
 
 # Comando con Gunicorn + Uvicorn workers
-CMD gunicorn src.app.main:app \
+CMD gunicorn app.main:app \
     --workers 4 \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:${PORT:-10000} \
