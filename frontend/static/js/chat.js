@@ -9,7 +9,7 @@ const ChatState = {
     messages: [],
     websocket: null,
     isConnected: false,
-    documentTypes: [] // Almacenar tipos de documento cargados
+    documentTypes: [] // Array para almacenar tipos de documento cargados dinámicamente
 };
 
 // ============ Inicialización del Chat ============
@@ -21,11 +21,11 @@ async function initChat() {
         return;
     }
 
+    // Cargar tipos de documento desde el backend
+    await loadDocumentTypes();
+
     // Cargar información del usuario
     loadUserInfo();
-
-    // Cargar tipos de documento
-    await loadDocumentTypes();
 
     // Inicializar elementos del DOM
     initChatElements();
@@ -41,35 +41,6 @@ async function initChat() {
 
     // Crear nueva sesión
     createNewSession();
-}
-
-// ============ Cargar Tipos de Documento ============
-async function loadDocumentTypes() {
-    try {
-        const documentTypes = await API.get('/catalog/document-types');
-        ChatState.documentTypes = documentTypes;
-        
-        // Actualizar el select con los tipos de documento
-        const documentTypeSelect = document.getElementById('documentType');
-        if (documentTypeSelect && documentTypes.length > 0) {
-            // Limpiar opciones existentes
-            documentTypeSelect.innerHTML = '';
-            
-            // Agregar opciones desde la base de datos
-            documentTypes.forEach(docType => {
-                const option = document.createElement('option');
-                option.value = docType.document_type_id;
-                option.textContent = `${docType.type_code || ''} - ${docType.type_name}`.trim();
-                documentTypeSelect.appendChild(option);
-            });
-            
-            console.log('Tipos de documento cargados:', documentTypes.length);
-        }
-    } catch (error) {
-        console.error('Error cargando tipos de documento:', error);
-        // Mantener opciones por defecto si falla la carga
-        addMessageToChat('assistant', '⚠️ Advertencia: No se pudieron cargar todos los tipos de documento. Usando opciones por defecto.');
-    }
 }
 
 // ============ Cargar Información del Usuario ============
@@ -88,6 +59,64 @@ function loadUserInfo() {
     if (profileModalInitials) profileModalInitials.textContent = initials;
     if (profileModalName) profileModalName.textContent = user.full_name || 'Usuario';
     if (profileModalEmail) profileModalEmail.textContent = user.email || 'usuario@ejemplo.com';
+}
+
+// ============ Cargar Tipos de Documento Dinámicamente ============
+async function loadDocumentTypes() {
+    try {
+        // Obtener tipos de documento desde el backend
+        const types = await API.get('/catalog/document-types');
+        
+        if (Array.isArray(types) && types.length > 0) {
+            ChatState.documentTypes = types;
+            populateDocumentTypeDropdown(types);
+            console.log('Tipos de documento cargados:', types);
+        } else {
+            console.warn('No se recibieron tipos de documento del backend. Usando valores por defecto.');
+            loadDefaultDocumentTypes();
+        }
+    } catch (error) {
+        console.error('Error cargando tipos de documento:', error);
+        // Cargar valores por defecto si hay error
+        loadDefaultDocumentTypes();
+    }
+}
+
+// ============ Cargar Tipos de Documento Por Defecto ============
+function loadDefaultDocumentTypes() {
+    const defaultTypes = [
+        { document_type_id: 1, type_name: 'CC - Cédula de Ciudadanía', type_code: 'CC' },
+        { document_type_id: 2, type_name: 'TI - Tarjeta de Identidad', type_code: 'TI' },
+        { document_type_id: 3, type_name: 'CE - Cédula de Extranjería', type_code: 'CE' },
+        { document_type_id: 4, type_name: 'PA - Pasaporte', type_code: 'PA' }
+    ];
+    ChatState.documentTypes = defaultTypes;
+    populateDocumentTypeDropdown(defaultTypes);
+}
+
+// ============ Poblar Dropdown de Tipos de Documento ============
+function populateDocumentTypeDropdown(types) {
+    const selectElement = document.getElementById('documentType');
+    if (!selectElement) {
+        console.error('No se encontró elemento con id "documentType"');
+        return;
+    }
+
+    // Limpiar opciones existentes excepto la primera
+    selectElement.innerHTML = '';
+
+    // Agregar opciones dinámicamente
+    types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.document_type_id;
+        option.textContent = type.type_name;
+        selectElement.appendChild(option);
+    });
+
+    // Seleccionar la primera opción por defecto
+    if (types.length > 0) {
+        selectElement.value = types[0].document_type_id;
+    }
 }
 
 // ============ Inicializar Modal de Perfil ============
@@ -745,11 +774,11 @@ function initWebSocket() {
 }
 
 // ============ Inicialización Automática ============
-document.addEventListener('DOMContentLoaded', async () => {
+document.addEventListener('DOMContentLoaded', () => {
     const path = window.location.pathname;
     
     // Inicializar chat si estamos en la página del chat o en index.html
     if (path === '/chat' || path === '/public/index.html' || path.endsWith('index.html') || path === '/') {
-        await initChat();
+        initChat();
     }
 });
