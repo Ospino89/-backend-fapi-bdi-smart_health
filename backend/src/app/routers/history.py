@@ -5,11 +5,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 from typing import List
 from datetime import datetime
-
 from app.database.database import get_db
 from app.core.security import get_current_user
 from app.models.user import User
-from app.models.audit_logs import AuditLog
 from pydantic import BaseModel
 from uuid import UUID
 
