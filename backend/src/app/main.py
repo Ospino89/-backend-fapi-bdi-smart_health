@@ -39,9 +39,9 @@ app = FastAPI(
     title="SmartHealth API",
     description="API REST y WebSocket para sistema de gestión de salud con RAG",
     version="2.0.0",
-    docs_url="/docs",  # ✅ Siempre habilitado
-    redoc_url="/redoc",  # ✅ Siempre habilitado
-    openapi_url="/openapi.json",  # ✅ Siempre habilitado
+    docs_url="/docs",  #
+    redoc_url="/redoc",  # 
+    openapi_url="/openapi.json",  
     swagger_ui_parameters={
         "syntaxHighlight.theme": "monokai",
         "tryItOutEnabled": True
