@@ -33,7 +33,7 @@ services:
     healthCheckPath: /health
     
     # Auto-deploy desde main branch
-    branch: main
+    branch: test
     
     # Environment Variables
     envVars:
