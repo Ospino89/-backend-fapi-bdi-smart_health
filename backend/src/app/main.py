@@ -32,15 +32,16 @@ except Exception as e:
     logger.error(f"Error creando tablas: {str(e)}")
     raise
 
-# Crear aplicación con CDN alternativas para Swagger
+# ============================================================
+# CREAR APLICACIÓN - DOCS HABILITADOS SIEMPRE
+# ============================================================
 app = FastAPI(
     title="SmartHealth API",
     description="API REST y WebSocket para sistema de gestión de salud con RAG",
     version="2.0.0",
-    docs_url="/docs" if settings.app_env == "development" else None,
-    redoc_url="/redoc" if settings.app_env == "development" else None,
-    openapi_url="/openapi.json" if settings.app_env == "development" else None,
-    #  URLs alternativas para los assets de Swagger
+    docs_url="/docs",  # ✅ Siempre habilitado
+    redoc_url="/redoc",  # ✅ Siempre habilitado
+    openapi_url="/openapi.json",  # ✅ Siempre habilitado
     swagger_ui_parameters={
         "syntaxHighlight.theme": "monokai",
         "tryItOutEnabled": True
@@ -171,6 +172,82 @@ app.include_router(websocket_chat.router)
 app.include_router(history.router)
 
 # ============================================================
+# ENDPOINTS PRINCIPALES
+# ============================================================
+
+@app.get("/", tags=["Root"])
+@app.head("/")  # ✅ Agregar soporte para HEAD (health checks de Render)
+def root():
+    """Endpoint raíz con información de la API"""
+    return {
+        "message": "API SmartHealth funcionando correctamente",
+        "version": "2.0.0",
+        "environment": settings.app_env,
+        "features": {
+            "rest_api": True,
+            "websocket": True,
+            "rag_enabled": True,
+            "streaming": True,
+            "authentication": True
+        },
+        "endpoints": {
+            "docs": "/docs",  # ✅ Ahora siempre disponible
+            "redoc": "/redoc",
+            "websocket": f"wss://{settings.app_env == 'production' and 'backend-fapi-bdi-smart-health-1.onrender.com' or 'localhost:8000'}/ws/chat",
+            "health": "/health"
+        }
+    }
+
+@app.get("/health", tags=["Health"])
+def health():
+    """Health check endpoint"""
+    db_status = "disconnected"
+    error_details = None
+    
+    try:
+        # Verificar conexión a base de datos
+        from .database.database import SessionLocal
+        from sqlalchemy import text
+        
+        db = SessionLocal()
+        try:
+            # Intentar una query simple
+            result = db.execute(text("SELECT 1"))
+            result.scalar()
+            db_status = "connected"
+        except Exception as db_error:
+            db_status = "disconnected"
+            error_details = str(db_error)
+            logger.error(f"Database health check failed: {db_error}")
+        finally:
+            db.close()
+            
+    except Exception as e:
+        db_status = "error"
+        error_details = str(e)
+        logger.error(f"Database health check error: {e}")
+    
+    is_healthy = db_status == "connected"
+    
+    response = {
+        "status": "healthy" if is_healthy else "unhealthy",
+        "timestamp": time.time(),
+        "environment": settings.app_env,
+        "services": {
+            "database": db_status,
+            "llm": "ready",
+            "vector_search": "ready",
+            "websocket": "enabled"
+        }
+    }
+    
+    # Agregar detalles de error en desarrollo
+    if not is_healthy and settings.app_env == "development" and error_details:
+        response["error"] = error_details
+    
+    return response
+
+# ============================================================
 # SERVIR FRONTEND (Archivos Estáticos)
 # ============================================================
 
@@ -223,89 +300,7 @@ if FRONTEND_DIR.exists():
             if unauthorized_path.exists():
                 return FileResponse(str(unauthorized_path))
             raise StarletteHTTPException(status_code=404, detail="Página no encontrada")
-        
-        # Redirigir raíz a /login
-        @app.get("/", tags=["Root"], include_in_schema=False)
-        async def root_redirect():
-            """Redirige a la página de login"""
-            return RedirectResponse(url="/login")
 
-# ============================================================
-# ENDPOINTS PRINCIPALES
-# ============================================================
-
-@app.get("/", tags=["Root"])
-def root():
-    """Endpoint raíz con información de la API"""
-    return {
-        "message": "API SmartHealth funcionando correctamente",
-        "version": "2.0.0",
-        "environment": settings.app_env,
-        "features": {
-            "rest_api": True,
-            "websocket": True,
-            "rag_enabled": True,
-            "streaming": True,
-            "authentication": True
-        },
-        "endpoints": {
-            "docs": "/docs" if settings.app_env == "development" else None,
-            "redoc": "/redoc" if settings.app_env == "development" else None,
-            "websocket": "ws://localhost:8000/ws/chat",
-            "health": "/health"
-        }
-    }
-
-# src/app/main.py - Reemplazar el endpoint /health con esta versión corregida
-
-@app.get("/health", tags=["Health"])
-def health():
-    """Health check endpoint"""
-    db_status = "disconnected"
-    error_details = None
-    
-    try:
-        # Verificar conexión a base de datos
-        from .database.database import SessionLocal
-        from sqlalchemy import text
-        
-        db = SessionLocal()
-        try:
-            # Intentar una query simple
-            result = db.execute(text("SELECT 1"))
-            result.scalar()
-            db_status = "connected"
-        except Exception as db_error:
-            db_status = "disconnected"
-            error_details = str(db_error)
-            logger.error(f"Database health check failed: {db_error}")
-        finally:
-            db.close()
-            
-    except Exception as e:
-        db_status = "error"
-        error_details = str(e)
-        logger.error(f"Database health check error: {e}")
-    
-    is_healthy = db_status == "connected"
-    
-    response = {
-        "status": "healthy" if is_healthy else "unhealthy",
-        "timestamp": time.time(),
-        "environment": settings.app_env,
-        "services": {
-            "database": db_status,
-            "llm": "ready",
-            "vector_search": "ready",
-            "websocket": "enabled"
-        }
-    }
-    
-    # Agregar detalles de error en desarrollo
-    if not is_healthy and settings.app_env == "development" and error_details:
-        response["error"] = error_details
-    
-    return response
 # ============================================================
 # STARTUP/SHUTDOWN EVENTS
 # ============================================================
@@ -318,6 +313,7 @@ async def startup_event():
     logger.info(f"Entorno: {settings.app_env}")
     logger.info(f"Modelo LLM: {settings.llm_model}")
     logger.info(f"Base de datos: {settings.db_host}:{settings.db_port}/{settings.db_name}")
+    logger.info(f"Documentación disponible en: /docs y /redoc")
     logger.info("=" * 60)
 
 @app.on_event("shutdown")
