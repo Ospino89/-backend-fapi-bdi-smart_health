@@ -23,7 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# ✅ Copiar requirements.txt desde backend/
+
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
@@ -49,11 +49,9 @@ RUN groupadd -r appuser && \
     mkdir -p /app && \
     chown -R appuser:appuser /app
 
-#  Copiar código backend (solo src desde el contexto backend/)
-COPY --chown=appuser:appuser /src /app/src
+COPY --chown=appuser:appuser src /app/src
 
-# Copiar frontend desde la raíz del proyecto
-COPY --chown=appuser:appuser /frontend /app/frontend
+COPY --chown=appuser:appuser frontend /app/frontend
 
 # Variables de entorno
 ENV PYTHONPATH=/app/src
