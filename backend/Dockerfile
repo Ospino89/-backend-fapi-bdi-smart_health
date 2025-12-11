@@ -23,6 +23,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
+# ✅ Copiar requirements.txt desde backend/
 COPY requirements.txt .
 RUN pip install --upgrade pip && \
     pip install -r requirements.txt
@@ -48,11 +49,11 @@ RUN groupadd -r appuser && \
     mkdir -p /app && \
     chown -R appuser:appuser /app
 
-# Copiar código backend
-COPY --chown=appuser:appuser ./backend/src /app/src
+# ✅ Copiar código backend (solo src desde el contexto backend/)
+COPY --chown=appuser:appuser ./src /app/src
 
-#  COPIAR FRONTEND (CLAVE PARA ESTA OPCIÓN)
-COPY --chown=appuser:appuser ./frontend /app/frontend
+# ✅ Copiar frontend desde la raíz del proyecto
+COPY --chown=appuser:appuser ../frontend /app/frontend
 
 # Variables de entorno
 ENV PYTHONPATH=/app/src
@@ -69,7 +70,7 @@ EXPOSE ${PORT:-10000}
 
 # Comando con Gunicorn + Uvicorn workers
 CMD gunicorn app.main:app \
-    --workers 4 \
+    --workers ${WORKERS:-4} \
     --worker-class uvicorn.workers.UvicornWorker \
     --bind 0.0.0.0:${PORT:-10000} \
     --timeout 120 \
