@@ -8,17 +8,21 @@ const ChatState = {
     sequenceChatId: 0,
     messages: [],
     websocket: null,
-    isConnected: false
+    isConnected: false,
+    documentTypes: [] // Array para almacenar tipos de documento cargados dinámicamente
 };
 
 // ============ Inicialización del Chat ============
-function initChat() {
+async function initChat() {
     // Verificar autenticación
     if (!Auth.isAuthenticated()) {
         // Redirigir a pantalla de no autorizado
         window.location.href = '/unauthorized';
         return;
     }
+
+    // Cargar tipos de documento desde el backend
+    await loadDocumentTypes();
 
     // Cargar información del usuario
     loadUserInfo();
@@ -55,6 +59,64 @@ function loadUserInfo() {
     if (profileModalInitials) profileModalInitials.textContent = initials;
     if (profileModalName) profileModalName.textContent = user.full_name || 'Usuario';
     if (profileModalEmail) profileModalEmail.textContent = user.email || 'usuario@ejemplo.com';
+}
+
+// ============ Cargar Tipos de Documento Dinámicamente ============
+async function loadDocumentTypes() {
+    try {
+        // Obtener tipos de documento desde el backend
+        const types = await API.get('/catalog/document-types');
+        
+        if (Array.isArray(types) && types.length > 0) {
+            ChatState.documentTypes = types;
+            populateDocumentTypeDropdown(types);
+            console.log('Tipos de documento cargados:', types);
+        } else {
+            console.warn('No se recibieron tipos de documento del backend. Usando valores por defecto.');
+            loadDefaultDocumentTypes();
+        }
+    } catch (error) {
+        console.error('Error cargando tipos de documento:', error);
+        // Cargar valores por defecto si hay error
+        loadDefaultDocumentTypes();
+    }
+}
+
+// ============ Cargar Tipos de Documento Por Defecto ============
+function loadDefaultDocumentTypes() {
+    const defaultTypes = [
+        { document_type_id: 1, type_name: 'CC - Cédula de Ciudadanía', type_code: 'CC' },
+        { document_type_id: 2, type_name: 'TI - Tarjeta de Identidad', type_code: 'TI' },
+        { document_type_id: 3, type_name: 'CE - Cédula de Extranjería', type_code: 'CE' },
+        { document_type_id: 4, type_name: 'PA - Pasaporte', type_code: 'PA' }
+    ];
+    ChatState.documentTypes = defaultTypes;
+    populateDocumentTypeDropdown(defaultTypes);
+}
+
+// ============ Poblar Dropdown de Tipos de Documento ============
+function populateDocumentTypeDropdown(types) {
+    const selectElement = document.getElementById('documentType');
+    if (!selectElement) {
+        console.error('No se encontró elemento con id "documentType"');
+        return;
+    }
+
+    // Limpiar opciones existentes excepto la primera
+    selectElement.innerHTML = '';
+
+    // Agregar opciones dinámicamente
+    types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type.document_type_id;
+        option.textContent = type.type_name;
+        selectElement.appendChild(option);
+    });
+
+    // Seleccionar la primera opción por defecto
+    if (types.length > 0) {
+        selectElement.value = types[0].document_type_id;
+    }
 }
 
 // ============ Inicializar Modal de Perfil ============
@@ -611,13 +673,24 @@ async function loadSession(sessionId) {
 
 // ============ Utilidades ============
 function getDocumentTypeName(typeId) {
-    const types = {
+    // Buscar en los tipos de documento cargados
+    const docType = ChatState.documentTypes.find(dt => dt.document_type_id === typeId);
+    if (docType) {
+        return docType.type_code || docType.type_name;
+    }
+    
+    // Fallback a mapeo estático si no se ha cargado aún
+    const fallbackTypes = {
         1: 'CC',
         2: 'TI',
         3: 'CE',
-        4: 'PA'
+        4: 'PA',
+        5: 'RC',
+        6: 'NUIP',
+        7: 'NIP',
+        8: 'CC'
     };
-    return types[typeId] || 'CC';
+    return fallbackTypes[typeId] || 'CC';
 }
 
 // ============ Simulación de Respuesta (TEMPORAL) ============
