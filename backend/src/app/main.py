@@ -11,7 +11,7 @@ import time
 import os
 from pathlib import Path
 
-from .routers import auth, user, query, websocket_chat, history
+from .routers import auth, user, query, websocket_chat, history , catalog 
 from .database.database import Base, engine
 from .database.db_config import settings
 
@@ -147,6 +147,7 @@ app.include_router(user.router)
 app.include_router(query.router)
 app.include_router(websocket_chat.router)
 app.include_router(history.router)
+app.include_router(catalog.router)
 
 # ============================================================
 # DETECTAR Y CONFIGURAR FRONTEND
@@ -167,18 +168,18 @@ else:
 
 # Logs de diagnóstico
 logger.info("=" * 60)
-logger.info("🔍 DIAGNÓSTICO DE RUTAS DEL FRONTEND")
-logger.info(f"📁 FRONTEND_DIR: {FRONTEND_DIR}")
-logger.info(f"✅ Frontend existe: {FRONTEND_DIR.exists()}")
+logger.info(" DIAGNÓSTICO DE RUTAS DEL FRONTEND")
+logger.info(f" FRONTEND_DIR: {FRONTEND_DIR}")
+logger.info(f" Frontend existe: {FRONTEND_DIR.exists()}")
 
 if FRONTEND_DIR.exists():
     try:
         contenido = [item.name for item in FRONTEND_DIR.iterdir()]
-        logger.info(f"📂 Contenido: {contenido}")
+        logger.info(f" Contenido: {contenido}")
     except Exception as e:
-        logger.error(f"❌ Error listando contenido: {e}")
+        logger.error(f" Error listando contenido: {e}")
 else:
-    logger.error(f"❌ Frontend NO encontrado en: {FRONTEND_DIR}")
+    logger.error(f" Frontend NO encontrado en: {FRONTEND_DIR}")
 
 logger.info("=" * 60)
 
@@ -193,25 +194,25 @@ if FRONTEND_DIR.exists():
     # Montar archivos estáticos
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-        logger.info(f"✅ Archivos estáticos montados: {static_dir}")
+        logger.info(f" Archivos estáticos montados: {static_dir}")
     else:
-        logger.warning(f"⚠️  Carpeta static no encontrada: {static_dir}")
+        logger.warning(f"  Carpeta static no encontrada: {static_dir}")
     
     # Verificar carpeta public
     if public_dir.exists():
-        logger.info(f"✅ Carpeta public encontrada: {public_dir}")
+        logger.info(f" Carpeta public encontrada: {public_dir}")
         FRONTEND_MOUNTED = True
         
         # Listar archivos HTML
         try:
             html_files = list(public_dir.glob("*.html"))
-            logger.info(f"✅ Archivos HTML encontrados: {[f.name for f in html_files]}")
+            logger.info(f" Archivos HTML encontrados: {[f.name for f in html_files]}")
         except Exception as e:
-            logger.error(f"❌ Error listando archivos HTML: {e}")
+            logger.error(f" Error listando archivos HTML: {e}")
     else:
-        logger.warning(f"⚠️  Carpeta public no encontrada: {public_dir}")
+        logger.warning(f"  Carpeta public no encontrada: {public_dir}")
 else:
-    logger.warning(f"⚠️  Frontend no encontrado en: {FRONTEND_DIR}")
+    logger.warning(f"  Frontend no encontrado en: {FRONTEND_DIR}")
 
 # ============================================================
 # ENDPOINTS DEL FRONTEND (solo si existe)
@@ -231,9 +232,9 @@ if FRONTEND_MOUNTED:
         """Sirve la página de login"""
         login_path = public_dir / "login.html"
         if login_path.exists():
-            logger.info(f"✅ Sirviendo login desde: {login_path}")
+            logger.info(f" Sirviendo login desde: {login_path}")
             return FileResponse(str(login_path))
-        logger.error(f"❌ Login no encontrado en: {login_path}")
+        logger.error(f" Login no encontrado en: {login_path}")
         raise StarletteHTTPException(status_code=404, detail="Página de login no encontrada")
     
     @app.get("/chat", tags=["Frontend"])
@@ -241,9 +242,9 @@ if FRONTEND_MOUNTED:
         """Sirve la aplicación de chat"""
         index_path = public_dir / "index.html"
         if index_path.exists():
-            logger.info(f"✅ Sirviendo chat desde: {index_path}")
+            logger.info(f" Sirviendo chat desde: {index_path}")
             return FileResponse(str(index_path))
-        logger.error(f"❌ Chat no encontrado en: {index_path}")
+        logger.error(f" Chat no encontrado en: {index_path}")
         raise StarletteHTTPException(status_code=404, detail="Frontend no encontrado")
     
     @app.get("/register", tags=["Frontend"])
@@ -262,7 +263,7 @@ if FRONTEND_MOUNTED:
             return FileResponse(str(unauthorized_path))
         raise StarletteHTTPException(status_code=404, detail="Página no encontrada")
     
-    logger.info("✅ Endpoints del frontend registrados correctamente")
+    logger.info(" Endpoints del frontend registrados correctamente")
 
 else:
     # Si no hay frontend, endpoint raíz muestra info de la API
@@ -283,7 +284,7 @@ else:
             }
         }
     
-    logger.warning("⚠️  Frontend no disponible - Solo se expone la API REST")
+    logger.warning("  Frontend no disponible - Solo se expone la API REST")
 
 # ============================================================
 # ENDPOINTS DE LA API (siempre disponibles)
@@ -368,15 +369,15 @@ def health():
 @app.on_event("startup")
 async def startup_event():
     logger.info("=" * 60)
-    logger.info("🚀 SmartHealth API iniciando")
-    logger.info(f"📍 Entorno: {settings.app_env}")
-    logger.info(f"🤖 Modelo LLM: {settings.llm_model}")
-    logger.info(f"💾 Base de datos: {settings.db_host}:{settings.db_port}/{settings.db_name}")
-    logger.info(f"🌐 Frontend: {'✅ Disponible' if FRONTEND_MOUNTED else '❌ No disponible'}")
-    logger.info(f"📁 Frontend path: {FRONTEND_DIR}")
-    logger.info(f"📚 Documentación disponible en: /docs y /redoc")
+    logger.info(" SmartHealth API iniciando")
+    logger.info(f" Entorno: {settings.app_env}")
+    logger.info(f" Modelo LLM: {settings.llm_model}")
+    logger.info(f" Base de datos: {settings.db_host}:{settings.db_port}/{settings.db_name}")
+    logger.info(f" Frontend: {' Disponible' if FRONTEND_MOUNTED else ' No disponible'}")
+    logger.info(f" Frontend path: {FRONTEND_DIR}")
+    logger.info(f" Documentación disponible en: /docs y /redoc")
     logger.info("=" * 60)
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    logger.info("👋 SmartHealth API cerrando")
+    logger.info(" SmartHealth API cerrando")
