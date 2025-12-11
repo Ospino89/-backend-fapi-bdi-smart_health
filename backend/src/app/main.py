@@ -2,18 +2,16 @@
 
 from fastapi import FastAPI, Request, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.middleware.trustedhost import TrustedHostMiddleware
 from fastapi.responses import JSONResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.exceptions import RequestValidationError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 import logging
 import time
-from typing import Dict
 import os
 from pathlib import Path
 
-from .routers import auth, user, query, websocket_chat, history
+from .routers import auth, user, query, websocket_chat, history, catalog
 from .database.database import Base, engine
 from .database.db_config import settings
 
@@ -33,15 +31,15 @@ except Exception as e:
     raise
 
 # ============================================================
-# CREAR APLICACIÓN - DOCS HABILITADOS SIEMPRE
+# CREAR APLICACIÓN
 # ============================================================
 app = FastAPI(
     title="SmartHealth API",
     description="API REST y WebSocket para sistema de gestión de salud con RAG",
     version="2.0.0",
-    docs_url="/docs",  #
-    redoc_url="/redoc",  # 
-    openapi_url="/openapi.json",  
+    docs_url="/docs",
+    redoc_url="/redoc",
+    openapi_url="/openapi.json",
     swagger_ui_parameters={
         "syntaxHighlight.theme": "monokai",
         "tryItOutEnabled": True
@@ -49,50 +47,34 @@ app = FastAPI(
 )
 
 # ============================================================
-# MIDDLEWARES DE SEGURIDAD
+# MIDDLEWARES
 # ============================================================
 
-# 1. CORS - Configuración permisiva para desarrollo
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # En desarrollo, permitir todos
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# 2. Security Headers Middleware
 @app.middleware("http")
 async def add_security_headers(request: Request, call_next):
     response = await call_next(request)
-    
-    # Headers de seguridad solo en producción
     if settings.app_env == "production":
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-Frame-Options"] = "DENY"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Strict-Transport-Security"] = "max-age=31536000"
-    
     return response
 
-# 3. Request Logging Middleware
 @app.middleware("http")
 async def log_requests(request: Request, call_next):
     start_time = time.time()
-    
-    # Log request
     logger.info(f"Request: {request.method} {request.url.path}")
-    
     response = await call_next(request)
-    
-    # Log response
     process_time = time.time() - start_time
-    logger.info(
-        f"Response: {response.status_code} "
-        f"Time: {process_time:.3f}s "
-        f"Path: {request.url.path}"
-    )
-    
+    logger.info(f"Response: {response.status_code} Time: {process_time:.3f}s Path: {request.url.path}")
     return response
 
 # ============================================================
@@ -101,7 +83,6 @@ async def log_requests(request: Request, call_next):
 
 @app.exception_handler(StarletteHTTPException)
 async def http_exception_handler(request: Request, exc: StarletteHTTPException):
-    """Maneja excepciones HTTP de forma segura"""
     logger.warning(f"HTTP Exception: {exc.status_code} - {exc.detail}")
     return JSONResponse(
         status_code=exc.status_code,
@@ -116,7 +97,6 @@ async def http_exception_handler(request: Request, exc: StarletteHTTPException):
 
 @app.exception_handler(RequestValidationError)
 async def validation_exception_handler(request: Request, exc: RequestValidationError):
-    """Maneja errores de validación de Pydantic"""
     logger.warning(f"Validation Error: {exc.errors()}")
     return JSONResponse(
         status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
@@ -132,10 +112,8 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request: Request, exc: Exception):
-    """Maneja excepciones generales sin exponer detalles internos"""
     logger.error(f"Unhandled Exception: {type(exc).__name__}: {str(exc)}", exc_info=True)
     
-    # En desarrollo, mostrar más detalles
     if settings.app_env == "development":
         return JSONResponse(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -149,7 +127,6 @@ async def general_exception_handler(request: Request, exc: Exception):
             }
         )
     
-    # En producción, mensaje genérico
     return JSONResponse(
         status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
         content={
@@ -162,7 +139,7 @@ async def general_exception_handler(request: Request, exc: Exception):
     )
 
 # ============================================================
-# ROUTERS
+# ROUTERS DE LA API
 # ============================================================
 
 app.include_router(auth.router)
@@ -170,15 +147,153 @@ app.include_router(user.router)
 app.include_router(query.router)
 app.include_router(websocket_chat.router)
 app.include_router(history.router)
+app.include_router(catalog.router)
 
 # ============================================================
-# ENDPOINTS PRINCIPALES
+# DETECTAR Y CONFIGURAR FRONTEND
 # ============================================================
 
-@app.get("/", tags=["Root"])
-@app.head("/")  # ✅ Agregar soporte para HEAD (health checks de Render)
-def root():
-    """Endpoint raíz con información de la API"""
+# Variable global para saber si el frontend está montado
+FRONTEND_MOUNTED = False
+
+# Detectar la ruta del frontend
+FRONTEND_DIR_ENV = os.getenv("FRONTEND_DIR")
+if FRONTEND_DIR_ENV:
+    FRONTEND_DIR = Path(FRONTEND_DIR_ENV)
+    logger.info(f"🔧 Usando FRONTEND_DIR desde variable de entorno: {FRONTEND_DIR}")
+else:
+    # Ruta por defecto en el contenedor Docker
+    FRONTEND_DIR = Path("/app/frontend")
+    logger.info(f"🔧 Usando ruta por defecto: {FRONTEND_DIR}")
+
+# Logs de diagnóstico
+logger.info("=" * 60)
+logger.info("🔍 DIAGNÓSTICO DE RUTAS DEL FRONTEND")
+logger.info(f"📁 FRONTEND_DIR: {FRONTEND_DIR}")
+logger.info(f"✅ Frontend existe: {FRONTEND_DIR.exists()}")
+
+if FRONTEND_DIR.exists():
+    try:
+        contenido = [item.name for item in FRONTEND_DIR.iterdir()]
+        logger.info(f"📂 Contenido: {contenido}")
+    except Exception as e:
+        logger.error(f"❌ Error listando contenido: {e}")
+else:
+    logger.error(f"❌ Frontend NO encontrado en: {FRONTEND_DIR}")
+
+logger.info("=" * 60)
+
+# ============================================================
+# MONTAR ARCHIVOS ESTÁTICOS Y FRONTEND
+# ============================================================
+
+if FRONTEND_DIR.exists():
+    static_dir = FRONTEND_DIR / "static"
+    public_dir = FRONTEND_DIR / "public"
+    
+    # Montar archivos estáticos
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
+        logger.info(f"✅ Archivos estáticos montados: {static_dir}")
+    else:
+        logger.warning(f"⚠️  Carpeta static no encontrada: {static_dir}")
+    
+    # Verificar carpeta public
+    if public_dir.exists():
+        logger.info(f"✅ Carpeta public encontrada: {public_dir}")
+        FRONTEND_MOUNTED = True
+        
+        # Listar archivos HTML
+        try:
+            html_files = list(public_dir.glob("*.html"))
+            logger.info(f"✅ Archivos HTML encontrados: {[f.name for f in html_files]}")
+        except Exception as e:
+            logger.error(f"❌ Error listando archivos HTML: {e}")
+    else:
+        logger.warning(f"⚠️  Carpeta public no encontrada: {public_dir}")
+else:
+    logger.warning(f"⚠️  Frontend no encontrado en: {FRONTEND_DIR}")
+
+# ============================================================
+# ENDPOINTS DEL FRONTEND (solo si existe)
+# ============================================================
+
+if FRONTEND_MOUNTED:
+    public_dir = FRONTEND_DIR / "public"
+    
+    @app.get("/", tags=["Frontend"], include_in_schema=False)
+    @app.head("/", include_in_schema=False)
+    async def root():
+        """Redirige a la página de login"""
+        return RedirectResponse(url="/login", status_code=302)
+    
+    @app.get("/login", tags=["Frontend"])
+    async def serve_login():
+        """Sirve la página de login"""
+        login_path = public_dir / "login.html"
+        if login_path.exists():
+            logger.info(f"✅ Sirviendo login desde: {login_path}")
+            return FileResponse(str(login_path))
+        logger.error(f"❌ Login no encontrado en: {login_path}")
+        raise StarletteHTTPException(status_code=404, detail="Página de login no encontrada")
+    
+    @app.get("/chat", tags=["Frontend"])
+    async def serve_chat():
+        """Sirve la aplicación de chat"""
+        index_path = public_dir / "index.html"
+        if index_path.exists():
+            logger.info(f"✅ Sirviendo chat desde: {index_path}")
+            return FileResponse(str(index_path))
+        logger.error(f"❌ Chat no encontrado en: {index_path}")
+        raise StarletteHTTPException(status_code=404, detail="Frontend no encontrado")
+    
+    @app.get("/register", tags=["Frontend"])
+    async def serve_register():
+        """Sirve la página de registro"""
+        register_path = public_dir / "register.html"
+        if register_path.exists():
+            return FileResponse(str(register_path))
+        raise StarletteHTTPException(status_code=404, detail="Página de registro no encontrada")
+    
+    @app.get("/unauthorized", tags=["Frontend"])
+    async def serve_unauthorized():
+        """Sirve la página de no autorizado"""
+        unauthorized_path = public_dir / "unauthorized.html"
+        if unauthorized_path.exists():
+            return FileResponse(str(unauthorized_path))
+        raise StarletteHTTPException(status_code=404, detail="Página no encontrada")
+    
+    logger.info("✅ Endpoints del frontend registrados correctamente")
+
+else:
+    # Si no hay frontend, endpoint raíz muestra info de la API
+    @app.get("/", tags=["API Info"])
+    @app.head("/")
+    def root():
+        """Información de la API"""
+        return {
+            "message": "API SmartHealth funcionando correctamente",
+            "version": "2.0.0",
+            "environment": settings.app_env,
+            "frontend": "No disponible - Solo API REST",
+            "endpoints": {
+                "docs": "/docs",
+                "redoc": "/redoc",
+                "health": "/health",
+                "api_info": "/api"
+            }
+        }
+    
+    logger.warning("⚠️  Frontend no disponible - Solo se expone la API REST")
+
+# ============================================================
+# ENDPOINTS DE LA API (siempre disponibles)
+# ============================================================
+
+@app.get("/api", tags=["API Info"])
+@app.head("/api")
+def api_info():
+    """Información detallada de la API"""
     return {
         "message": "API SmartHealth funcionando correctamente",
         "version": "2.0.0",
@@ -188,13 +303,15 @@ def root():
             "websocket": True,
             "rag_enabled": True,
             "streaming": True,
-            "authentication": True
+            "authentication": True,
+            "frontend": FRONTEND_MOUNTED
         },
         "endpoints": {
-            "docs": "/docs",  # ✅ Ahora siempre disponible
+            "docs": "/docs",
             "redoc": "/redoc",
-            "websocket": f"wss://{settings.app_env == 'production' and 'backend-fapi-bdi-smart-health-1.onrender.com' or 'localhost:8000'}/ws/chat",
-            "health": "/health"
+            "api_info": "/api",
+            "health": "/health",
+            "websocket": f"wss://backend-fapi-bdi-smart-health-1.onrender.com/ws/chat" if settings.app_env == "production" else "ws://localhost:8000/ws/chat"
         }
     }
 
@@ -205,13 +322,11 @@ def health():
     error_details = None
     
     try:
-        # Verificar conexión a base de datos
         from .database.database import SessionLocal
         from sqlalchemy import text
         
         db = SessionLocal()
         try:
-            # Intentar una query simple
             result = db.execute(text("SELECT 1"))
             result.scalar()
             db_status = "connected"
@@ -221,7 +336,6 @@ def health():
             logger.error(f"Database health check failed: {db_error}")
         finally:
             db.close()
-            
     except Exception as e:
         db_status = "error"
         error_details = str(e)
@@ -233,6 +347,8 @@ def health():
         "status": "healthy" if is_healthy else "unhealthy",
         "timestamp": time.time(),
         "environment": settings.app_env,
+        "frontend_mounted": FRONTEND_MOUNTED,
+        "frontend_path": str(FRONTEND_DIR),
         "services": {
             "database": db_status,
             "llm": "ready",
@@ -241,65 +357,10 @@ def health():
         }
     }
     
-    # Agregar detalles de error en desarrollo
     if not is_healthy and settings.app_env == "development" and error_details:
         response["error"] = error_details
     
     return response
-
-# ============================================================
-# SERVIR FRONTEND (Archivos Estáticos)
-# ============================================================
-
-# Obtener la ruta del proyecto (subir 3 niveles desde backend/src/app)
-BASE_DIR = Path(__file__).resolve().parent.parent.parent.parent
-FRONTEND_DIR = BASE_DIR / "frontend"
-
-# Servir archivos estáticos (CSS, JS, imágenes)
-if FRONTEND_DIR.exists():
-    static_dir = FRONTEND_DIR / "static"
-    if static_dir.exists():
-        app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
-        logger.info(f"Archivos estáticos montados desde: {static_dir}")
-    
-    # Servir archivos públicos (HTML)
-    public_dir = FRONTEND_DIR / "public"
-    if public_dir.exists():
-        app.mount("/public", StaticFiles(directory=str(public_dir)), name="public")
-        logger.info(f"Archivos públicos montados desde: {public_dir}")
-        
-        # Servir páginas del frontend
-        @app.get("/chat", tags=["Frontend"])
-        async def serve_chat():
-            """Sirve la aplicación de chat"""
-            index_path = public_dir / "index.html"
-            if index_path.exists():
-                return FileResponse(str(index_path))
-            raise StarletteHTTPException(status_code=404, detail="Frontend no encontrado")
-        
-        @app.get("/login", tags=["Frontend"])
-        async def serve_login():
-            """Sirve la página de login"""
-            login_path = public_dir / "login.html"
-            if login_path.exists():
-                return FileResponse(str(login_path))
-            raise StarletteHTTPException(status_code=404, detail="Página de login no encontrada")
-        
-        @app.get("/register", tags=["Frontend"])
-        async def serve_register():
-            """Sirve la página de registro"""
-            register_path = public_dir / "register.html"
-            if register_path.exists():
-                return FileResponse(str(register_path))
-            raise StarletteHTTPException(status_code=404, detail="Página de registro no encontrada")
-        
-        @app.get("/unauthorized", tags=["Frontend"])
-        async def serve_unauthorized():
-            """Sirve la página de contenido no disponible"""
-            unauthorized_path = public_dir / "unauthorized.html"
-            if unauthorized_path.exists():
-                return FileResponse(str(unauthorized_path))
-            raise StarletteHTTPException(status_code=404, detail="Página no encontrada")
 
 # ============================================================
 # STARTUP/SHUTDOWN EVENTS
@@ -307,16 +368,16 @@ if FRONTEND_DIR.exists():
 
 @app.on_event("startup")
 async def startup_event():
-    """Eventos al iniciar la aplicación"""
     logger.info("=" * 60)
-    logger.info("SmartHealth API iniciando")
-    logger.info(f"Entorno: {settings.app_env}")
-    logger.info(f"Modelo LLM: {settings.llm_model}")
-    logger.info(f"Base de datos: {settings.db_host}:{settings.db_port}/{settings.db_name}")
-    logger.info(f"Documentación disponible en: /docs y /redoc")
+    logger.info("🚀 SmartHealth API iniciando")
+    logger.info(f"📍 Entorno: {settings.app_env}")
+    logger.info(f"🤖 Modelo LLM: {settings.llm_model}")
+    logger.info(f"💾 Base de datos: {settings.db_host}:{settings.db_port}/{settings.db_name}")
+    logger.info(f"🌐 Frontend: {'✅ Disponible' if FRONTEND_MOUNTED else '❌ No disponible'}")
+    logger.info(f"📁 Frontend path: {FRONTEND_DIR}")
+    logger.info(f"📚 Documentación disponible en: /docs y /redoc")
     logger.info("=" * 60)
 
 @app.on_event("shutdown")
 async def shutdown_event():
-    """Eventos al cerrar la aplicación"""
-    logger.info("SmartHealth API cerrando")
+    logger.info("👋 SmartHealth API cerrando")
