@@ -26,7 +26,7 @@ services:
     
     # Docker Configuration
     dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    dockerContext: .
 
     
     # Health Check
