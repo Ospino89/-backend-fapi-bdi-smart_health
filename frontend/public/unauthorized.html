@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Acceso Restringido - SmartHealth</title>
+    
+    <!-- Estilos base -->
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/animations.css">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="/static/img/Logo, Png.png">
+    
+    <style>
+        .unauthorized-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(-45deg, #2e4ba7, #1e3a8a, #667eea, #764ba2);
+            background-size: 400% 400%;
+            animation: gradientShift 15s ease infinite;
+            padding: var(--spacing-xl);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .unauthorized-container::before {
+            content: '';
+            position: absolute;
+            top: -50%;
+            left: -50%;
+            width: 200%;
+            height: 200%;
+            background: radial-gradient(circle, rgba(255,255,255,0.1) 1px, transparent 1px);
+            background-size: 50px 50px;
+            animation: float 20s linear infinite;
+        }
+        
+        @keyframes gradientShift {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+        
+        @keyframes float {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(50px, 50px) rotate(360deg); }
+        }
+        
+        .unauthorized-card {
+            background: var(--bg-primary);
+            border-radius: var(--radius-xl);
+            box-shadow: var(--shadow-xl);
+            padding: var(--spacing-2xl);
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            z-index: 1;
+            text-align: center;
+            animation: scaleIn 0.5s ease-out;
+        }
+        
+        @keyframes scaleIn {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+        
+        .unauthorized-icon {
+            width: 120px;
+            height: 120px;
+            margin: 0 auto var(--spacing-xl);
+            background: linear-gradient(135deg, #f59e0b 0%, #ef4444 100%);
+            border-radius: var(--radius-full);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            animation: pulse 2s ease-in-out infinite;
+        }
+        
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.8;
+                transform: scale(1.05);
+            }
+        }
+        
+        .unauthorized-icon svg {
+            width: 60px;
+            height: 60px;
+            color: white;
+        }
+        
+        .unauthorized-logo {
+            width: 80px;
+            height: 80px;
+            margin: 0 auto var(--spacing-lg);
+            animation: float-animation 3s ease-in-out infinite;
+            filter: drop-shadow(0 4px 8px rgba(46, 75, 167, 0.3));
+        }
+        
+        @keyframes float-animation {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        .unauthorized-card h1 {
+            font-size: 2rem;
+            margin-bottom: var(--spacing-md);
+            background: linear-gradient(135deg, #2e4ba7 0%, #1e3a8a 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        
+        .unauthorized-card h2 {
+            font-size: 1.5rem;
+            color: var(--text-primary);
+            margin-bottom: var(--spacing-md);
+        }
+        
+        .unauthorized-card p {
+            font-size: 1rem;
+            color: var(--text-secondary);
+            margin-bottom: var(--spacing-xl);
+            line-height: 1.6;
+        }
+        
+        .unauthorized-actions {
+            display: flex;
+            gap: var(--spacing-md);
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+        
+        .btn-auth {
+            padding: 0.875rem 2rem;
+            border-radius: var(--radius-md);
+            font-weight: 600;
+            font-size: 0.9375rem;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            border: none;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: var(--spacing-sm);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .btn-auth-primary {
+            background: linear-gradient(135deg, #2e4ba7 0%, #1e3a8a 100%);
+            color: white;
+        }
+        
+        .btn-auth-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(46, 75, 167, 0.4);
+        }
+        
+        .btn-auth-secondary {
+            background-color: var(--bg-secondary);
+            color: var(--text-primary);
+            border: 2px solid var(--border-color);
+        }
+        
+        .btn-auth-secondary:hover {
+            background-color: var(--border-color);
+            transform: translateY(-2px);
+        }
+        
+        .btn-auth:active {
+            transform: translateY(0);
+        }
+        
+        @media (max-width: 768px) {
+            .unauthorized-actions {
+                flex-direction: column;
+            }
+            
+            .btn-auth {
+                width: 100%;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="unauthorized-container">
+        <div class="unauthorized-card">
+            <img src="/static/img/Logo, Png.png" alt="SmartHealth Logo" class="unauthorized-logo" />
+            
+            <div class="unauthorized-icon">
+                <svg width="60" height="60" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zM10 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm0-4c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1s1 .45 1 1v3c0 .55-.45 1-1 1z"/>
+                </svg>
+            </div>
+            
+            <h1>SmartHealth</h1>
+            <h2>Contenido No Disponible</h2>
+            <p>
+                Para acceder a esta sección, necesitas iniciar sesión o crear una cuenta.
+                Por favor, inicia sesión o regístrate para continuar.
+            </p>
+            
+            <div class="unauthorized-actions">
+                <a href="/login" class="btn-auth btn-auth-primary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 2C5.58 2 2 5.58 2 10s3.58 8 8 8 8-3.58 8-8-3.58-8-8-8zM10 14c-.55 0-1-.45-1-1s.45-1 1-1 1 .45 1 1-.45 1-1 1zm0-4c-.55 0-1-.45-1-1V6c0-.55.45-1 1-1s1 .45 1 1v3c0 .55-.45 1-1 1z"/>
+                    </svg>
+                    Iniciar Sesión
+                </a>
+                <a href="/register" class="btn-auth btn-auth-secondary">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M10 4v12M4 10h12"/>
+                    </svg>
+                    Registrarse
+                </a>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
+
